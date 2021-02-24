@@ -67,7 +67,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\99 New_Project\SystemLibrary\SystemLibrary\SystemLibrary.csproj">
+    <ProjectReference Include="..\..\..\..\..\..\Users\lic67888\Documents\50 Source\99 New_Project\SystemLibrary\SystemLibrary\SystemLibrary.csproj">
       <Project>{e5fc48b9-f847-43ab-afa7-e82f7681b065}</Project>
       <Name>SystemLibrary</Name>
     </ProjectReference>
