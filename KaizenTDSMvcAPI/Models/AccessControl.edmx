@@ -1,0 +1,227 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+      <Schema Namespace="ACCESSCONTROLModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="EMP">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="LASTNAME" Type="nvarchar" MaxLength="64" Nullable="false" />
+          <Property Name="FIRSTNAME" Type="nvarchar" MaxLength="64" />
+          <Property Name="MIDNAME" Type="nvarchar" MaxLength="64" />
+          <Property Name="SSNO" Type="nvarchar" MaxLength="13" />
+          <Property Name="LASTCHANGED" Type="datetime" />
+          <Property Name="VISITOR" Type="smallint" Nullable="false" />
+          <Property Name="ALLOWEDVISITORS" Type="smallint" Nullable="false" />
+          <Property Name="ASSET_GROUPID" Type="int" />
+          <Property Name="LNL_DBID" Type="int" Nullable="false" />
+          <Property Name="GUARD" Type="smallint" />
+          <Property Name="SEGMENTID" Type="int" Nullable="false" />
+        </EntityType>
+        <EntityType Name="MMOBJS">
+          <Key>
+            <PropertyRef Name="EMPID" />
+            <PropertyRef Name="OBJECT" />
+            <PropertyRef Name="TYPE" />
+          </Key>
+          <Property Name="EMPID" Type="int" Nullable="false" />
+          <Property Name="OBJECT" Type="int" Nullable="false" />
+          <Property Name="TYPE" Type="int" Nullable="false" />
+          <Property Name="LNL_BLOB" Type="image" />
+          <Property Name="LASTCHANGED" Type="datetime" />
+          <Property Name="ACCEPTANCETHRESHOLD" Type="int" />
+          <Property Name="BIO_BODYPART" Type="smallint" />
+        </EntityType>
+        <EntityType Name="UDFEMP">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="COSTCENTER" Type="nvarchar" MaxLength="32" />
+          <Property Name="CITY" Type="nvarchar" MaxLength="25" />
+          <Property Name="STATE" Type="nvarchar" MaxLength="12" />
+          <Property Name="ZIP" Type="nvarchar" MaxLength="15" />
+          <Property Name="DEPT" Type="int" />
+          <Property Name="LOCATION" Type="int" />
+          <Property Name="BUILDING" Type="int" />
+          <Property Name="FLOOR" Type="datetime" />
+          <Property Name="OPHONE" Type="nvarchar" MaxLength="15" />
+          <Property Name="EXT" Type="nvarchar" MaxLength="6" />
+          <Property Name="EMPLOYEENUM" Type="int" />
+          <Property Name="SUPLASTNAME" Type="nvarchar" MaxLength="25" />
+          <Property Name="SUPFIRSTNAME" Type="nvarchar" MaxLength="15" />
+          <Property Name="WORKSCHED" Type="nvarchar" MaxLength="15" />
+          <Property Name="BARCODENUM" Type="nvarchar" MaxLength="20" />
+          <Property Name="FLDDATE827" Type="datetime" />
+          <Property Name="FLDTEXT829" Type="nvarchar" MaxLength="15" />
+          <Property Name="FLDNUM846" Type="int" />
+          <Property Name="FLDTEXT848" Type="nvarchar" MaxLength="15" />
+          <Property Name="FLDTEXT850" Type="nvarchar" MaxLength="15" />
+          <Property Name="FLDDATE872" Type="datetime" />
+        </EntityType>
+        <EntityContainer Name="ACCESSCONTROLModelStoreContainer">
+          <EntitySet Name="EMP" EntityType="Self.EMP" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MMOBJS" EntityType="Self.MMOBJS" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="UDFEMP" EntityType="Self.UDFEMP" Schema="dbo" store:Type="Tables" />
+        </EntityContainer>
+      </Schema>
+    </edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="ACCESSCONTROLModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityType Name="EMP">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="LASTNAME" Type="String" MaxLength="64" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="FIRSTNAME" Type="String" MaxLength="64" FixedLength="false" Unicode="true" />
+          <Property Name="MIDNAME" Type="String" MaxLength="64" FixedLength="false" Unicode="true" />
+          <Property Name="SSNO" Type="String" MaxLength="13" FixedLength="false" Unicode="true" />
+          <Property Name="LASTCHANGED" Type="DateTime" Precision="3" />
+          <Property Name="VISITOR" Type="Int16" Nullable="false" />
+          <Property Name="ALLOWEDVISITORS" Type="Int16" Nullable="false" />
+          <Property Name="ASSET_GROUPID" Type="Int32" />
+          <Property Name="LNL_DBID" Type="Int32" Nullable="false" />
+          <Property Name="GUARD" Type="Int16" />
+          <Property Name="SEGMENTID" Type="Int32" Nullable="false" />
+        </EntityType>
+        <EntityType Name="MMOBJ">
+          <Key>
+            <PropertyRef Name="EMPID" />
+            <PropertyRef Name="OBJECT" />
+            <PropertyRef Name="TYPE" />
+          </Key>
+          <Property Name="EMPID" Type="Int32" Nullable="false" />
+          <Property Name="OBJECT" Type="Int32" Nullable="false" />
+          <Property Name="TYPE" Type="Int32" Nullable="false" />
+          <Property Name="LNL_BLOB" Type="Binary" MaxLength="Max" FixedLength="false" />
+          <Property Name="LASTCHANGED" Type="DateTime" Precision="3" />
+          <Property Name="ACCEPTANCETHRESHOLD" Type="Int32" />
+          <Property Name="BIO_BODYPART" Type="Int16" />
+        </EntityType>
+        <EntityType Name="UDFEMP">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="COSTCENTER" Type="String" MaxLength="32" FixedLength="false" Unicode="true" />
+          <Property Name="CITY" Type="String" MaxLength="25" FixedLength="false" Unicode="true" />
+          <Property Name="STATE" Type="String" MaxLength="12" FixedLength="false" Unicode="true" />
+          <Property Name="ZIP" Type="String" MaxLength="15" FixedLength="false" Unicode="true" />
+          <Property Name="DEPT" Type="Int32" />
+          <Property Name="LOCATION" Type="Int32" />
+          <Property Name="BUILDING" Type="Int32" />
+          <Property Name="FLOOR" Type="DateTime" Precision="3" />
+          <Property Name="OPHONE" Type="String" MaxLength="15" FixedLength="false" Unicode="true" />
+          <Property Name="EXT" Type="String" MaxLength="6" FixedLength="false" Unicode="true" />
+          <Property Name="EMPLOYEENUM" Type="Int32" />
+          <Property Name="SUPLASTNAME" Type="String" MaxLength="25" FixedLength="false" Unicode="true" />
+          <Property Name="SUPFIRSTNAME" Type="String" MaxLength="15" FixedLength="false" Unicode="true" />
+          <Property Name="WORKSCHED" Type="String" MaxLength="15" FixedLength="false" Unicode="true" />
+          <Property Name="BARCODENUM" Type="String" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="FLDDATE827" Type="DateTime" Precision="3" />
+          <Property Name="FLDTEXT829" Type="String" MaxLength="15" FixedLength="false" Unicode="true" />
+          <Property Name="FLDNUM846" Type="Int32" />
+          <Property Name="FLDTEXT848" Type="String" MaxLength="15" FixedLength="false" Unicode="true" />
+          <Property Name="FLDTEXT850" Type="String" MaxLength="15" FixedLength="false" Unicode="true" />
+          <Property Name="FLDDATE872" Type="DateTime" Precision="3" />
+        </EntityType>
+        <EntityContainer Name="ACCESSCONTROLEntities" annotation:LazyLoadingEnabled="true">
+          <EntitySet Name="EMPs" EntityType="Self.EMP" />
+          <EntitySet Name="MMOBJS" EntityType="Self.MMOBJ" />
+          <EntitySet Name="UDFEMPs" EntityType="Self.UDFEMP" />
+        </EntityContainer>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="ACCESSCONTROLModelStoreContainer" CdmEntityContainer="ACCESSCONTROLEntities">
+          <EntitySetMapping Name="EMPs">
+            <EntityTypeMapping TypeName="ACCESSCONTROLModel.EMP">
+              <MappingFragment StoreEntitySet="EMP">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="LASTNAME" ColumnName="LASTNAME" />
+                <ScalarProperty Name="FIRSTNAME" ColumnName="FIRSTNAME" />
+                <ScalarProperty Name="MIDNAME" ColumnName="MIDNAME" />
+                <ScalarProperty Name="SSNO" ColumnName="SSNO" />
+                <ScalarProperty Name="LASTCHANGED" ColumnName="LASTCHANGED" />
+                <ScalarProperty Name="VISITOR" ColumnName="VISITOR" />
+                <ScalarProperty Name="ALLOWEDVISITORS" ColumnName="ALLOWEDVISITORS" />
+                <ScalarProperty Name="ASSET_GROUPID" ColumnName="ASSET_GROUPID" />
+                <ScalarProperty Name="LNL_DBID" ColumnName="LNL_DBID" />
+                <ScalarProperty Name="GUARD" ColumnName="GUARD" />
+                <ScalarProperty Name="SEGMENTID" ColumnName="SEGMENTID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MMOBJS">
+            <EntityTypeMapping TypeName="ACCESSCONTROLModel.MMOBJ">
+              <MappingFragment StoreEntitySet="MMOBJS">
+                <ScalarProperty Name="EMPID" ColumnName="EMPID" />
+                <ScalarProperty Name="OBJECT" ColumnName="OBJECT" />
+                <ScalarProperty Name="TYPE" ColumnName="TYPE" />
+                <ScalarProperty Name="LNL_BLOB" ColumnName="LNL_BLOB" />
+                <ScalarProperty Name="LASTCHANGED" ColumnName="LASTCHANGED" />
+                <ScalarProperty Name="ACCEPTANCETHRESHOLD" ColumnName="ACCEPTANCETHRESHOLD" />
+                <ScalarProperty Name="BIO_BODYPART" ColumnName="BIO_BODYPART" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="UDFEMPs">
+            <EntityTypeMapping TypeName="ACCESSCONTROLModel.UDFEMP">
+              <MappingFragment StoreEntitySet="UDFEMP">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="COSTCENTER" ColumnName="COSTCENTER" />
+                <ScalarProperty Name="CITY" ColumnName="CITY" />
+                <ScalarProperty Name="STATE" ColumnName="STATE" />
+                <ScalarProperty Name="ZIP" ColumnName="ZIP" />
+                <ScalarProperty Name="DEPT" ColumnName="DEPT" />
+                <ScalarProperty Name="LOCATION" ColumnName="LOCATION" />
+                <ScalarProperty Name="BUILDING" ColumnName="BUILDING" />
+                <ScalarProperty Name="FLOOR" ColumnName="FLOOR" />
+                <ScalarProperty Name="OPHONE" ColumnName="OPHONE" />
+                <ScalarProperty Name="EXT" ColumnName="EXT" />
+                <ScalarProperty Name="EMPLOYEENUM" ColumnName="EMPLOYEENUM" />
+                <ScalarProperty Name="SUPLASTNAME" ColumnName="SUPLASTNAME" />
+                <ScalarProperty Name="SUPFIRSTNAME" ColumnName="SUPFIRSTNAME" />
+                <ScalarProperty Name="WORKSCHED" ColumnName="WORKSCHED" />
+                <ScalarProperty Name="BARCODENUM" ColumnName="BARCODENUM" />
+                <ScalarProperty Name="FLDDATE827" ColumnName="FLDDATE827" />
+                <ScalarProperty Name="FLDTEXT829" ColumnName="FLDTEXT829" />
+                <ScalarProperty Name="FLDNUM846" ColumnName="FLDNUM846" />
+                <ScalarProperty Name="FLDTEXT848" ColumnName="FLDTEXT848" />
+                <ScalarProperty Name="FLDTEXT850" ColumnName="FLDTEXT850" />
+                <ScalarProperty Name="FLDDATE872" ColumnName="FLDDATE872" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="true" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="UseLegacyProvider" Value="false" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>

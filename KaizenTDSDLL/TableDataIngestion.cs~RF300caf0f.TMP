@@ -1,0 +1,64 @@
+﻿using Dapper;
+using KaizenTDSDLL.TableDataIngestionUtils;
+using Oracle.ManagedDataAccess.Client;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace KaizenTDSDLL
+{
+    public class TableDataIngestion
+    {
+        #region Auto-implemented Properties
+        public string ErrorMessage;
+        #endregion
+
+        private OracleConnection oraConn;
+        private string target_schema;
+        private int tableid;
+        
+        public TableDataIngestion(OracleConnection oraConn, string target_schema, int tableid)
+        {
+            this.oraConn = oraConn;
+            this.target_schema = target_schema;
+            this.tableid = tableid;
+        }
+
+        public bool Inserting()
+        {
+            TableDataIngestUtil util = new TableDataIngestUtil(this.oraConn, this.target_schema);
+            try
+            {
+                string sql = string.Format(@"select tableid, tablename, filenamelong as archivefilename, productid, testheaderid, testheaderstepid from tabledata_v where tableid = {0}", this.tableid);
+
+                var list = this.oraConn.Query<TableDataVClass>(sql).ToList();
+                if (list.Count() > 0)
+                {
+                    string msg = util.ProcessTableData(list.FirstOrDefault());
+                    if (string.IsNullOrEmpty(msg))
+                    {
+                        this.ErrorMessage = "Success";
+                        return true;
+                        //var res = new { IsSuccess = true, ErrorMessage = "Success" };
+                        //resp = ExtensionHelper.LogAndResponse(new ObjectContent<object>(res, new JsonMediaTypeFormatter()));
+                    }
+                    else
+                    {
+                        this.ErrorMessage = msg;
+                        return false;
+                        //resp = ExtensionHelper.LogAndResponse(new ObjectContent<object>(res, new JsonMediaTypeFormatter()));
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                //resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.Conflict, ExtensionHelper.GetAllFootprints(ex), ex);
+                //ExtensionHelper.LogExpSPMessageToDB(ex, ExtensionHelper.GetAllFootprints(ex), HttpStatusCode.Conflict, "TableDataIngestion", 2, tableId, null);
+            }
+            return false;
+        }
+    }
+}

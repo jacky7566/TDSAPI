@@ -48,3 +48,10 @@ Thumbs.db
 *.mov
 *.wmv
 
+/.vs
+/KaizenTDSDLL/bin
+/KaizenTDSDLL/obj
+/KaizenTDSMvcAPI/appLog
+/KaizenTDSMvcAPI/bin
+/KaizenTDSMvcAPI/obj
+/packages

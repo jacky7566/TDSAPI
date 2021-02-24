@@ -1,0 +1,75 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace KaizenTDSDLL
+{
+    public class SqlQuery
+    {
+        public List<dynamic> ResultList;
+        public string ErrorMessage;
+        public string ReturnJSonStr;        
+        private string _APIRoute = "api/Generic";
+        private string _Format;
+
+        public SqlQuery(string systemName = "", string version = "1.0", string format = "json")
+        {
+            this.ResultList = new List<dynamic>();
+            if (string.IsNullOrEmpty(systemName) == false)
+            {
+                this._APIRoute = string.Format("{0}/{1}", this._APIRoute, systemName);
+            }
+            this._APIRoute = string.Format("{0}/{1}/QuerySQL", this._APIRoute, version);
+            this._Format = format;
+        }
+
+        public bool Process(string sqlCommand)
+        {
+            try
+            {
+                using (WebClient wc = new WebClient())
+                {
+                    if (string.IsNullOrEmpty(sqlCommand) == false)
+                    {                        
+                        wc.QueryString.Add("format", this._Format);
+                        wc.QueryString.Add("sqlcommand", sqlCommand);
+                        ReturnJSonStr = wc.DownloadString(Utilities._APIUrl + this._APIRoute);
+                        var resObj = (IDictionary<string, object>)Utilities.DeserializeJson<object>(ReturnJSonStr);
+                    }
+                    else
+                    {
+                        ReturnJSonStr = "{\"Message\":\"Missing Sql Command\"}";
+                        return false;
+                    }
+                    //var result = wc.UploadFile(Utilities._APIUrl + this._APIRoute, "POST", _FilePath);
+                    //ReturnJSonStr = Encoding.UTF8.GetString(result);
+                    //if (string.IsNullOrEmpty(ReturnJSonStr) == false)
+                    //{
+                    //    var resObj = (IDictionary<string, object>)Utilities.DeserializeJson<object>(ReturnJSonStr);
+                    //    bool.TryParse(resObj.Where(r => r.Key == "IsSuccess").FirstOrDefault().Value.ToString(), out IsSuccess);
+                    //    if (IsSuccess)
+                    //    {
+                    //        int.TryParse(resObj.Where(r => r.Key == "Id").FirstOrDefault().Value.ToString(), out TestHeaderId);
+                    //        return true;
+                    //    }
+                    //    else
+                    //    {
+                    //        ErrorMessage = resObj.Where(r => r.Key == "ErrorMessage").FirstOrDefault().Value.ToString();
+                    //        LastVisitedXml = resObj.Where(r => r.Key == "LastVisitedXml").FirstOrDefault().Value.ToString();
+                    //    }
+                    //}
+
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = Utilities.GetAllFootprints(ex);
+            }
+
+            return false;
+        }
+    }
+}

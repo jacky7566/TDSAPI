@@ -1,0 +1,160 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+      <Schema Namespace="JDSU_PerspectiveModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="ActivityPersons">
+          <Key>
+            <PropertyRef Name="ID_PK" />
+          </Key>
+          <Property Name="ID_PK" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="ActivityID_FK" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="PersonID_FK" Type="uniqueidentifier" />
+          <Property Name="TitleLookupID" Type="uniqueidentifier" />
+          <Property Name="LastName" Type="nvarchar" MaxLength="100" />
+          <Property Name="FirstName" Type="nvarchar" MaxLength="50" />
+          <Property Name="MiddleInitial" Type="nchar" MaxLength="2" />
+          <Property Name="Designation" Type="nvarchar" MaxLength="50" />
+          <Property Name="InvolvementTypeLookupID" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="BirthDate" Type="datetime" />
+          <Property Name="GenderLookupID" Type="uniqueidentifier" />
+          <Property Name="MaritalStatusLookupID" Type="uniqueidentifier" />
+          <Property Name="Height" Type="numeric" Precision="6" Scale="3" />
+          <Property Name="Weight" Type="numeric" Precision="6" Scale="3" />
+          <Property Name="HairColorLookupID" Type="uniqueidentifier" />
+          <Property Name="EyeColorLookupID" Type="uniqueidentifier" />
+          <Property Name="IsEmployee" Type="bit" />
+          <Property Name="EmployeeNumber" Type="nvarchar" MaxLength="100" />
+          <Property Name="FlagNotes" Type="nvarchar(max)" />
+          <Property Name="PersonPhoto" Type="image" />
+          <Property Name="IsInjured" Type="bit" />
+          <Property Name="IsFirstAid" Type="bit" />
+          <Property Name="IsHospitalized" Type="bit" />
+          <Property Name="IsInterviewed" Type="bit" />
+          <Property Name="SupplementalInformation" Type="nvarchar(max)" />
+          <Property Name="SysGMTOffset_SI" Type="smallint" />
+          <Property Name="SysAuditCBUserID_NV" Type="nvarchar" MaxLength="100" />
+          <Property Name="SysAuditCBMachineID_NV" Type="nvarchar" MaxLength="100" />
+          <Property Name="SysAuditCBDateTime_DT" Type="datetime" />
+          <Property Name="SysAuditLMUserID_NV" Type="nvarchar" MaxLength="100" />
+          <Property Name="SysAuditLMMachineID_NV" Type="nvarchar" MaxLength="100" />
+          <Property Name="SysAuditLMDateTime_DT" Type="datetime" />
+        </EntityType>
+        <EntityContainer Name="JDSU_PerspectiveModelStoreContainer">
+          <EntitySet Name="ActivityPersons" EntityType="Self.ActivityPersons" Schema="dbo" store:Type="Tables" />
+        </EntityContainer>
+      </Schema>
+    </edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="JDSU_PerspectiveModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityType Name="ActivityPerson">
+          <Key>
+            <PropertyRef Name="ID_PK" />
+          </Key>
+          <Property Name="ID_PK" Type="Guid" Nullable="false" />
+          <Property Name="ActivityID_FK" Type="Guid" Nullable="false" />
+          <Property Name="PersonID_FK" Type="Guid" />
+          <Property Name="TitleLookupID" Type="Guid" />
+          <Property Name="LastName" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="FirstName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="MiddleInitial" Type="String" MaxLength="2" FixedLength="true" Unicode="true" />
+          <Property Name="Designation" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="InvolvementTypeLookupID" Type="Guid" Nullable="false" />
+          <Property Name="BirthDate" Type="DateTime" Precision="3" />
+          <Property Name="GenderLookupID" Type="Guid" />
+          <Property Name="MaritalStatusLookupID" Type="Guid" />
+          <Property Name="Height" Type="Decimal" Precision="6" Scale="3" />
+          <Property Name="Weight" Type="Decimal" Precision="6" Scale="3" />
+          <Property Name="HairColorLookupID" Type="Guid" />
+          <Property Name="EyeColorLookupID" Type="Guid" />
+          <Property Name="IsEmployee" Type="Boolean" />
+          <Property Name="EmployeeNumber" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="FlagNotes" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="PersonPhoto" Type="Binary" MaxLength="Max" FixedLength="false" />
+          <Property Name="IsInjured" Type="Boolean" />
+          <Property Name="IsFirstAid" Type="Boolean" />
+          <Property Name="IsHospitalized" Type="Boolean" />
+          <Property Name="IsInterviewed" Type="Boolean" />
+          <Property Name="SupplementalInformation" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="SysGMTOffset_SI" Type="Int16" />
+          <Property Name="SysAuditCBUserID_NV" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="SysAuditCBMachineID_NV" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="SysAuditCBDateTime_DT" Type="DateTime" Precision="3" />
+          <Property Name="SysAuditLMUserID_NV" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="SysAuditLMMachineID_NV" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="SysAuditLMDateTime_DT" Type="DateTime" Precision="3" />
+        </EntityType>
+        <EntityContainer Name="JDSU_PerspectiveEntities" annotation:LazyLoadingEnabled="true">
+          <EntitySet Name="ActivityPersons" EntityType="Self.ActivityPerson" />
+        </EntityContainer>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="JDSU_PerspectiveModelStoreContainer" CdmEntityContainer="JDSU_PerspectiveEntities">
+          <EntitySetMapping Name="ActivityPersons">
+            <EntityTypeMapping TypeName="JDSU_PerspectiveModel.ActivityPerson">
+              <MappingFragment StoreEntitySet="ActivityPersons">
+                <ScalarProperty Name="ID_PK" ColumnName="ID_PK" />
+                <ScalarProperty Name="ActivityID_FK" ColumnName="ActivityID_FK" />
+                <ScalarProperty Name="PersonID_FK" ColumnName="PersonID_FK" />
+                <ScalarProperty Name="TitleLookupID" ColumnName="TitleLookupID" />
+                <ScalarProperty Name="LastName" ColumnName="LastName" />
+                <ScalarProperty Name="FirstName" ColumnName="FirstName" />
+                <ScalarProperty Name="MiddleInitial" ColumnName="MiddleInitial" />
+                <ScalarProperty Name="Designation" ColumnName="Designation" />
+                <ScalarProperty Name="InvolvementTypeLookupID" ColumnName="InvolvementTypeLookupID" />
+                <ScalarProperty Name="BirthDate" ColumnName="BirthDate" />
+                <ScalarProperty Name="GenderLookupID" ColumnName="GenderLookupID" />
+                <ScalarProperty Name="MaritalStatusLookupID" ColumnName="MaritalStatusLookupID" />
+                <ScalarProperty Name="Height" ColumnName="Height" />
+                <ScalarProperty Name="Weight" ColumnName="Weight" />
+                <ScalarProperty Name="HairColorLookupID" ColumnName="HairColorLookupID" />
+                <ScalarProperty Name="EyeColorLookupID" ColumnName="EyeColorLookupID" />
+                <ScalarProperty Name="IsEmployee" ColumnName="IsEmployee" />
+                <ScalarProperty Name="EmployeeNumber" ColumnName="EmployeeNumber" />
+                <ScalarProperty Name="FlagNotes" ColumnName="FlagNotes" />
+                <ScalarProperty Name="PersonPhoto" ColumnName="PersonPhoto" />
+                <ScalarProperty Name="IsInjured" ColumnName="IsInjured" />
+                <ScalarProperty Name="IsFirstAid" ColumnName="IsFirstAid" />
+                <ScalarProperty Name="IsHospitalized" ColumnName="IsHospitalized" />
+                <ScalarProperty Name="IsInterviewed" ColumnName="IsInterviewed" />
+                <ScalarProperty Name="SupplementalInformation" ColumnName="SupplementalInformation" />
+                <ScalarProperty Name="SysGMTOffset_SI" ColumnName="SysGMTOffset_SI" />
+                <ScalarProperty Name="SysAuditCBUserID_NV" ColumnName="SysAuditCBUserID_NV" />
+                <ScalarProperty Name="SysAuditCBMachineID_NV" ColumnName="SysAuditCBMachineID_NV" />
+                <ScalarProperty Name="SysAuditCBDateTime_DT" ColumnName="SysAuditCBDateTime_DT" />
+                <ScalarProperty Name="SysAuditLMUserID_NV" ColumnName="SysAuditLMUserID_NV" />
+                <ScalarProperty Name="SysAuditLMMachineID_NV" ColumnName="SysAuditLMMachineID_NV" />
+                <ScalarProperty Name="SysAuditLMDateTime_DT" ColumnName="SysAuditLMDateTime_DT" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="true" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="UseLegacyProvider" Value="false" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>
