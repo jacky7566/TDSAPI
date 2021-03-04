@@ -207,13 +207,13 @@ namespace KaizenTDSMvcAPI.Utils
             string fullFilePath = string.Empty;
             string sql = string.Empty;
             if (string.IsNullOrEmpty(tableName)) //Default XML File Path
-                sql = string.Format(@"SELECT ARCHIVELOCATION ARCHIVEFOLDER, FILENAME, ARCHIVEFILENAME, STARTTIME
+                sql = string.Format(@"SELECT ARCHIVELOCATION ARCHIVEFOLDER, FILENAME, ARCHIVEFILENAME
                                         FROM TESTHEADER_V WHERE TESTHEADERID = {0} ", testheaderId);
             else
             {
                 sql = string.Format(@"SELECT NVL((SELECT ARCHIVELOCATION FROM TESTHEADER_V 
                                         WHERE TESTHEADERID = {1}), '') ARCHIVEFOLDER,
-                                        FILENAME, ARCHIVEFILENAME, STARTDATETIME STARTTIME 
+                                        FILENAME, ARCHIVEFILENAME
                                         FROM {0} WHERE TESTHEADERID = {1} AND FILENAME = '{2}' ORDER BY LASTMODIFIEDDATE DESC ", tableName, testheaderId, filename.Trim());
             }
             
@@ -248,14 +248,16 @@ namespace KaizenTDSMvcAPI.Utils
                 var dicList = list.Select(x => x as IDictionary<string, object>).ToList();
                 //To avoid empty archive folder
                 var archiveLoc = dicList.FirstOrDefault()["ARCHIVEFILENAME"].ToString().Replace(dicList.FirstOrDefault()["FILENAME"].ToString(), "");
-                var archiveFolderFiles = Directory.GetFiles(archiveLoc);
+                var archiveFolderFiles = Directory.Exists(archiveLoc) ? Directory.GetFiles(archiveLoc).ToList() : new List<string>();
                 foreach (var item in dicList)
                 {
                     var archiveFN = item["ARCHIVEFILENAME"].ToString();//archiveFNItem.Where(r => r.Key == "ARCHIVEFILENAME").FirstOrDefault();
                     var fileName = item["FILENAME"].ToString();//archiveFNItem.Where(r => r.Key == "FILENAME").FirstOrDefault();
                     if (archiveFolderFiles.Contains(archiveFN) == false)
                     {
-                        item["ARCHIVEFILENAME"] = s3FileList.Where(r => r.Key.Contains(fileName)).FirstOrDefault().Value;
+                        var s3File = s3FileList.Where(r => r.Key.Contains(fileName)).FirstOrDefault().Value;
+                        if (string.IsNullOrEmpty(s3File) == false)
+                            item["ARCHIVEFILENAME"] = s3File;
                     }
                 }
             }

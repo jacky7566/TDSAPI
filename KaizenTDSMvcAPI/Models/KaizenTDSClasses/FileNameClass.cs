@@ -10,6 +10,5 @@ namespace KaizenTDSMvcAPI.Models.KaizenTDSClasses
         public string ARCHIVEFOLDER { get; set; }
         public string FILENAME { get; set; }
         public string ARCHIVEFILENAME { get; set; }
-        public DateTime STARTTIME { get; set; }
     }
 }

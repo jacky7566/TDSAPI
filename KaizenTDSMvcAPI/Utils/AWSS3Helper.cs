@@ -67,8 +67,9 @@ namespace KaizenTDSMvcAPI.Utils
 
         }
 
-        public GetObjectResponse Download_from_s3(string bucketname, string awsFileFullName)
+        public Stream Download_from_s3(string bucketname, string awsFileFullName)
         {
+            MemoryStream rs = new MemoryStream();
             string Str_Res = string.Empty;
             GetObjectRequest Req = new GetObjectRequest();
             GetObjectResponse resp = new GetObjectResponse();
@@ -91,6 +92,12 @@ namespace KaizenTDSMvcAPI.Utils
                     Req.BucketName = file.BucketName;
                     Req.Key = file.Key;
                     resp = S3_Client.GetObject(Req);
+                    var getObjectResponse = S3_Client.GetObject(Req);
+                    using (Stream responseStream = resp.ResponseStream)
+                    {
+                        var bytes = ReadStream(responseStream);
+                        rs = new MemoryStream(bytes);
+                    }
                 }
                 else return null;
             }
@@ -98,7 +105,7 @@ namespace KaizenTDSMvcAPI.Utils
             {
                 throw ex;
             }
-            return resp;
+            return rs;
         }
 
         public string GenerateFileURL_from_s3(string bucketname, string fileName)
@@ -223,6 +230,20 @@ namespace KaizenTDSMvcAPI.Utils
             }
 
             return regionEndPoint;
+        }
+
+        private static byte[] ReadStream(Stream responseStream)
+        {
+            byte[] buffer = new byte[16 * 1024];
+            using (MemoryStream ms = new MemoryStream())
+            {
+                int read;
+                while ((read = responseStream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    ms.Write(buffer, 0, read);
+                }
+                return ms.ToArray();
+            }
         }
     }
 }

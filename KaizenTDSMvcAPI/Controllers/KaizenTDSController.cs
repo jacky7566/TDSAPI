@@ -223,16 +223,13 @@ namespace KaizenTDSMvcAPI.Controllers
                     AWSS3Helper awsHelper = new AWSS3Helper();
                     var bucketName = LookupHelper.GetConfigValueByName("Archive_BucketName"); //lum-tds
                     var awsFolderName = LookupHelper.GetConfigValueByName("AWSFolderPath"); //Dev
-                    var awsFilePath = awsFolderName + "/" + fileNameItem.STARTTIME.ToString("yyyyMM")
-                        + "/" + fileNameItem.STARTTIME.ToString("dd") + "/" + testheaderId + "/" + fileNameItem.FILENAME;
+                    List<string> archiveChars = fileNameItem.ARCHIVEFOLDER.Split('\\').ToList();
+                    int startIdx = archiveChars.IndexOf("Archive");
+                    string[] s3Chars = archiveChars.Where(x => archiveChars.IndexOf(x) > startIdx).ToArray();
+                    var awsFilePath = awsFolderName + "/" + string.Join("/", s3Chars) + "/" + fileNameItem.FILENAME;
 
-                    var s3Resp = awsHelper.Download_from_s3(bucketName, awsFilePath);
-                    MemoryStream memoryStream = new MemoryStream();
-                    using (Stream responseStream = s3Resp.ResponseStream)
-                    {
-                        responseStream.CopyTo(memoryStream);
-                        content = new StreamContent(memoryStream);
-                    }
+                    var stream = awsHelper.Download_from_s3(bucketName, awsFilePath);
+                    content = new StreamContent(stream);
                 }
                 else
                 {
@@ -276,13 +273,25 @@ namespace KaizenTDSMvcAPI.Controllers
                     return resp;
                 }
                 
-                AWSS3Helper awsHelper = new AWSS3Helper();
-                var bucketName = LookupHelper.GetConfigValueByName("Archive_BucketName"); //lum-tds
-                var awsFolderName = LookupHelper.GetConfigValueByName("AWSFolderPath"); //Dev
-                var awsFilePath = awsFolderName + "/" + fileNameItem.STARTTIME.ToString("yyyyMM") 
-                    + "/" + fileNameItem.STARTTIME.ToString("dd") + "/" + testheaderId;
 
-                var list = awsHelper.GenerateAllURL_from_s3(bucketName, awsFilePath);
+
+                Dictionary<string, string> list = new Dictionary<string, string>();
+                if (string.IsNullOrEmpty(fileNameItem.ARCHIVEFOLDER) == false)
+                {
+                    AWSS3Helper awsHelper = new AWSS3Helper();
+                    var bucketName = LookupHelper.GetConfigValueByName("Archive_BucketName"); //lum-tds
+                    var awsFolderName = LookupHelper.GetConfigValueByName("AWSFolderPath"); //Dev
+
+                    List<string> archiveChars = fileNameItem.ARCHIVEFOLDER.Split('\\').ToList();
+                    int startIdx = archiveChars.IndexOf("Archive");
+                    string[] s3Chars = archiveChars.Where(x => archiveChars.IndexOf(x) > startIdx).ToArray();
+                    var awsFilePath = awsFolderName + "/" + string.Join("/", s3Chars);
+                    //var awsFilePath = awsFolderName + "/" + fileNameItem.STARTTIME.ToString("yyyyMM") 
+                    //    + "/" + fileNameItem.STARTTIME.ToString("dd") + "/" + testheaderId;
+
+                    list = awsHelper.GenerateAllURL_from_s3(bucketName, awsFilePath);
+                }
+
                 //if (list.Count() == 0)
                 //{
                 //    resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "File Not Exists");

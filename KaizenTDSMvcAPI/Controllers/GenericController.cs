@@ -207,52 +207,82 @@ namespace KaizenTDSMvcAPI.Controllers
             catch (Exception ex)
             {                
                 resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.Conflict, ExtensionHelper.GetAllFootprints(ex), ex);
-                ExtensionHelper.LogExpSPMessageToDB(ex, ExtensionHelper.GetAllFootprints(ex), HttpStatusCode.Conflict, apiLookupName + "_" + operation, 2, string.Empty, jsonInput);
+                ExtensionHelper.LogExpSPMessageToDB(ex, ExtensionHelper.GetAllFootprints(ex), HttpStatusCode.Conflict, apiLookupName + "_" + operation, 2, string.Empty);
             }
             return resp;
         }
 
+        /// <summary>
+        /// Post Data into Stored Procedure by Multi JSON format
+        /// </summary>
+        /// <param name="jsonInput">JSON input</param>
+        /// <param name="version">Stored Procedure Version</param>
+        /// <param name="apiLookupName">API Lookup Name</param>
+        /// <param name="operation">Operation of Stored Procedure (ex: insert/update/delete)</param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("MultiPost/{version}/{apiLookupName}/{operation}")]
+        public HttpResponseMessage MultiPost([FromBody] List<List<QueryParamClass>> jsonInput, string version, string apiLookupName, string operation)
+        {
+            return MultiPost(jsonInput, string.Empty, version, apiLookupName, operation);
+        }
 
-        ///// <summary>
-        ///// Execute Stored Procedure
-        ///// </summary>
-        ///// <param name="Input">Input/Output parameters for Stored Procedure</param>
-        ///// <param name="StoredProcedureName">Stored Procedure Name(ex: pkg_generic.xxx_ins)</param>
-        ///// <returns></returns>
-        //[HttpPost]
-        //[Route("ExecuteSP")]
-        //public object ExecuteStoredProcedure([FromBody] List<QueryParamClass> Input, string StoredProcedureName)
-        //{
-        //    return StoredProcedureHelper.ExecuteSpFunc(Input, StoredProcedureName);
-        //}
+        /// <summary>
+        /// Post Data into Stored Procedure by JSON format include System Name
+        /// </summary>
+        /// <param name="jsonInput">JSON input</param>
+        /// <param name="apiConnName">System name, default is Kaizen TDS</param>
+        /// <param name="version">Stored Procedure Version</param>
+        /// <param name="apiLookupName">API Lookup Name</param>
+        /// <param name="operation">Operation of Stored Procedure (ex: insert/update/delete)</param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("MultiPost/{apiConnName}/{version}/{apiLookupName}/{operation}")]
+        public HttpResponseMessage MultiPost([FromBody] List<List<QueryParamClass>> jsonInput, string apiConnName, string version, string apiLookupName, string operation)
+        {
+            var resp = new HttpResponseMessage(HttpStatusCode.OK);
+            try
+            {
+                LogHelper.WriteLine(JsonConvert.SerializeObject(jsonInput)); //For Test purpose
+                string packageName = string.Empty;
+                ConnectionHelper conHelper = new ConnectionHelper(apiConnName);
 
-        ///// <summary>
-        ///// GetResult By Stored Procedure
-        ///// </summary>
-        ///// <param name="StoredProcedureName">Stored Procedure Name(ex: pkg_generic.get_xxx)</param>
-        ///// <param name="Criteria">Query criteria</param>
-        ///// <returns></returns>
-        //[HttpGet]
-        //[Route("GetResultBySP/{StoredProcedureName}/{Criteria?}")]
-        //public SPOutputClass GetResultByStoredProcedure(string StoredProcedureName, string Criteria = null)
-        //{
-        //    return StoredProcedureHelper.GetResBySPFunc(StoredProcedureName, Criteria);
-        //}
+                var apiLkupList = LookupHelper.GetAPILookupList(apiLookupName, operation, version, "SP");
+                if (apiLkupList != null && apiLkupList.Count() > 0)
+                {
+                    packageName = apiLkupList.FirstOrDefault().COMMANDVALUE;
+                }
+                else
+                {
+                    var lkList = LookupHelper.GetTableStoredProcMap(apiLookupName, operation, version);
+                    if (lkList != null && lkList.Count() > 0)
+                    {
+                        packageName = lkList.FirstOrDefault().VALUE;
+                    }
+                }
 
-        ///// <summary>
-        ///// GetResult By Stored Procedure
-        ///// </summary>
-        ///// <param name="StoredProcedureName">Stored Procedure Name(ex: pkg_generic.get_xxx)</param>
-        ///// <param name="page">Query Page</param>
-        ///// <param name="pageSize">Query Page Size</param>
-        ///// <param name="Criteria">Query criteria</param>
-        ///// <returns></returns>
-        //[HttpGet]
-        //[Route("GetResultBySPAndPaged/{StoredProcedureName}/{page}")]
-        //public SPOutputClass GetResultBySPAndPaged(string StoredProcedureName, int page, int pageSize, string Criteria)
-        //{
-        //    return StoredProcedureHelper.GetResBySpAndPagedFunc(StoredProcedureName, page, pageSize, Criteria);
-        //}
+                List<object> resultList = new List<object>();
+                if (string.IsNullOrEmpty(packageName) == false)
+                {
+                    foreach (var item in jsonInput)
+                    {
+                        resultList.Add(StoredProcedureHelper.ExecuteSpFunc(item, packageName));
+                    }
+                    resp = ExtensionHelper.LogAndResponse(new ObjectContent<object>(resultList, new JsonMediaTypeFormatter()));
+                }
+                else
+                {
+                    resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound,
+                        string.Format("No stored procedure found! Version: {0}, API Lookup Name: {1}", version, apiLookupName));
+                }
+            }
+            catch (Exception ex)
+            {
+                resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.Conflict, ExtensionHelper.GetAllFootprints(ex), ex);
+                ExtensionHelper.LogExpSPMessageToDB(ex, ExtensionHelper.GetAllFootprints(ex), HttpStatusCode.Conflict, apiLookupName + "_" + operation, 2, string.Empty);
+            }
+            return resp;
+        }
 
         /// <summary>
         /// Uplodad File
