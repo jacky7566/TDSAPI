@@ -76,9 +76,7 @@ namespace KaizenTDSMvcAPI.Controllers
                                             from Agile.Tbl_lpn_data where ITEM_NUMBER = '{0}'", partnumber);
 
                     DBHelper dBHelper = new DBHelper();
-                    var athenaConnStr = LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn");
-                    var dbConn = conHelper.GetODBCDBConn(athenaConnStr);
-                    dt = dBHelper.GetDataTable(dbConn, sql);
+                    dt = dBHelper.GetDataTable(conHelper.GetODBCDBConn(LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn")), sql);
                     res = ExtensionHelper.ToDynamicList(dt);
                 }
 
@@ -278,35 +276,28 @@ namespace KaizenTDSMvcAPI.Controllers
 
 
                 Dictionary<string, string> list = new Dictionary<string, string>();
-                var resultList = ConnectionHelper.QueryDataBySQL(string.Format("Select * From {0} where TestHeaderId = {1}", tableName, testheaderId));
-
                 if (string.IsNullOrEmpty(fileNameItem.ARCHIVEFOLDER) == false)
                 {
-                    bool isCheckS3 = false;
-                    if (Directory.Exists(fileNameItem.ARCHIVEFOLDER))
-                    {
-                        DirectoryInfo di = new DirectoryInfo(fileNameItem.ARCHIVEFOLDER);
-                        if (di.GetFiles().Count() == 0)
-                            isCheckS3 = true;
-                    }
-                    else isCheckS3 = true;
-                    if (isCheckS3)
-                    {
-                        AWSS3Helper awsHelper = new AWSS3Helper();
-                        var bucketName = LookupHelper.GetConfigValueByName("Archive_BucketName"); //lum-tds
-                        var awsFolderName = LookupHelper.GetConfigValueByName("AWSFolderPath"); //Dev
+                    AWSS3Helper awsHelper = new AWSS3Helper();
+                    var bucketName = LookupHelper.GetConfigValueByName("Archive_BucketName"); //lum-tds
+                    var awsFolderName = LookupHelper.GetConfigValueByName("AWSFolderPath"); //Dev
 
-                        List<string> archiveChars = fileNameItem.ARCHIVEFOLDER.Split('\\').ToList();
-                        int startIdx = archiveChars.IndexOf("Archive");
-                        string[] s3Chars = archiveChars.Where(x => archiveChars.IndexOf(x) > startIdx).ToArray();
-                        var awsFilePath = awsFolderName + "/" + string.Join("/", s3Chars);
-                        //var awsFilePath = awsFolderName + "/" + fileNameItem.STARTTIME.ToString("yyyyMM") 
-                        //    + "/" + fileNameItem.STARTTIME.ToString("dd") + "/" + testheaderId;
+                    List<string> archiveChars = fileNameItem.ARCHIVEFOLDER.Split('\\').ToList();
+                    int startIdx = archiveChars.IndexOf("Archive");
+                    string[] s3Chars = archiveChars.Where(x => archiveChars.IndexOf(x) > startIdx).ToArray();
+                    var awsFilePath = awsFolderName + "/" + string.Join("/", s3Chars);
+                    //var awsFilePath = awsFolderName + "/" + fileNameItem.STARTTIME.ToString("yyyyMM") 
+                    //    + "/" + fileNameItem.STARTTIME.ToString("dd") + "/" + testheaderId;
 
-                        list = awsHelper.GenerateAllURL_from_s3(bucketName, awsFilePath);
-                    }
+                    list = awsHelper.GenerateAllURL_from_s3(bucketName, awsFilePath);
                 }
-             
+
+                //if (list.Count() == 0)
+                //{
+                //    resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "File Not Exists");
+                //    return resp;
+                //}
+                var resultList = ConnectionHelper.QueryDataBySQL(string.Format("Select * From {0} where TestHeaderId = {1}", tableName, testheaderId));
                 TDSFileHelper.FileExistChecker(resultList, list);
                 //var imageDataList = ConnectionHelper.QueryDataBySQL(string.Format("Select * From ImageData_v where TestHeaderId = {0}", testheaderId));
                 //TDSFileHelper.FileExistChecker(imageDataList, list);
