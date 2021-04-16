@@ -123,7 +123,7 @@ namespace KaizenTDSMvcAPI.Filters
                 using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
                 {
                     string sql = string.Format("SELECT USERID FROM TDSUSER WHERE APIKEY = '{0}' AND UPPER(EMPLOYEEID) = '{1}' ", token, userName.ToUpper());
-                    var res = ConnectionHelper.QueryDataBySQL(sql);
+                    var res = ConnectionHelper.QueryDataBySQL(sql, false);
                     if (res.Count() > 0) return true;
                 }
             }

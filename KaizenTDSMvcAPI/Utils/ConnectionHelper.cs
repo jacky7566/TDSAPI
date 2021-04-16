@@ -152,9 +152,19 @@ namespace KaizenTDSMvcAPI.Utils
                     }
                     else
                     {
-                        odps.Add(paramItem.Name.ToUpper(), value,
-                            StoredProcedureHelper.OracleDbTypeParser(argItem.DATA_TYPE),
-                            StoredProcedureHelper.GetParameterDirection(argItem.IN_OUT));
+                        var oType = StoredProcedureHelper.OracleDbTypeParser(argItem.DATA_TYPE);
+                        if (oType == OracleDbType.Blob)
+                        {
+                            byte[] blobValue = value == null ? null : System.Convert.FromBase64String(value.ToString());
+                            odps.Add(paramItem.Name.ToUpper(), blobValue, oType,
+                                StoredProcedureHelper.GetParameterDirection(argItem.IN_OUT), blobValue != null ? blobValue.Length : 0);
+                        }
+                        else
+                        {
+                            odps.Add(paramItem.Name.ToUpper(), value, oType,
+                                StoredProcedureHelper.GetParameterDirection(argItem.IN_OUT));
+                        }
+
                     }
                 }
                 else
@@ -226,13 +236,24 @@ namespace KaizenTDSMvcAPI.Utils
         /// Query Data By SQL
         /// </summary>
         /// <param name="sql">input sql</param>
+        /// <param name="isCheckAthena">is need to check Athena or not</param>
         /// <returns></returns>
-        public static List<dynamic> QueryDataBySQL(string sql)
+        public static List<dynamic> QueryDataBySQL(string sql, bool isCheckAthena)
         {
             List<dynamic> list = new List<dynamic>();
             using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
             {
                 list = sqlConn.Query<dynamic>(sql).ToList();
+                
+                //20210407 Jacky Add Athena Query function
+                if (isCheckAthena && list.Count() == 0)
+                {
+                    var athenaConn = LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn");
+                    using (var odbcConn = new OdbcConnection(athenaConn))
+                    {
+                        list = odbcConn.Query<dynamic>(sql).ToList();
+                    }
+                }
             }
             return list;
         }

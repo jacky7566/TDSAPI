@@ -228,6 +228,8 @@ namespace KaizenTDSMvcAPI.Utils
                     return OracleDbType.Decimal;
                 case "INT":
                     return OracleDbType.Int32;
+                case "BLOB":
+                    return OracleDbType.Blob;
             }
             return OracleDbType.Varchar2;
         }

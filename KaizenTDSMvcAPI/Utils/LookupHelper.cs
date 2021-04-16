@@ -92,12 +92,18 @@ namespace KaizenTDSMvcAPI.Utils
         {
             string configValue = string.Empty;
             var sql = string.Format("select configvalue from config where configname = '{0}' ", configName);
-            var res = ConnectionHelper.QueryDataBySQL(sql);
+            var res = new List<string>();
+
+            using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
+            {
+                res = sqlConn.Query<string>(sql).ToList();
+            }
+
             try
             {
                 if (res != null && res.Count() > 0)
                 {
-                    configValue = ((IDictionary<string, object>)res.FirstOrDefault()).Values.FirstOrDefault().ToString();
+                    configValue = res.FirstOrDefault();
                 }
             }
             catch (Exception ex)

@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
+using System.Data.Odbc;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -219,18 +220,25 @@ namespace KaizenTDSMvcAPI.Utils
             
             try
             {
+                List<FileNameClass> list = new List<FileNameClass>();
                 using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
                 {
-                    var list = sqlConn.Query<FileNameClass>(sql).ToList();
-                    var fileNameObj = list.FirstOrDefault();
-                    //if (fileNameObj != null && string.IsNullOrEmpty(fileNameObj.ARCHIVEFOLDER.Trim()))
-                    //{
-                    //    var directories = fileNameObj.ARCHIVEFILENAME.Split(Path.DirectorySeparatorChar);
-                    //    fileNameObj.ARCHIVEFOLDER = fileNameObj.ARCHIVEFILENAME.Replace(directories[directories.Count() - 1], "")
-                    //        .TrimEnd(Path.DirectorySeparatorChar);
-                    //}
-                    return fileNameObj;
+                    list = sqlConn.Query<FileNameClass>(sql).ToList();
+                    //list = new List<FileNameClass>(); //For Test Purpose
                 }
+
+                //20210407 Jacky Add Athena Query function
+                if (list.Count() == 0)
+                {
+                    var athenaConn = LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn");
+                    using (var sqlConn = new OdbcConnection(athenaConn))
+                    {
+                        list = sqlConn.Query<FileNameClass>(sql).ToList();
+                    }
+                }
+
+                var fileNameObj = list.FirstOrDefault();
+                return fileNameObj;
             }
             catch (Exception ex)
             {

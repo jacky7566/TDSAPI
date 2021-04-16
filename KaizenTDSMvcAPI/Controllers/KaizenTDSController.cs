@@ -6,6 +6,7 @@ using Oracle.ManagedDataAccess.Client;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Odbc;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -57,12 +58,13 @@ namespace KaizenTDSMvcAPI.Controllers
                                             from apps.XXSC_ITEM_PRODUCT_HIERARCHY_F
                                             where ITEM = '{0}' ", partnumber);
 
-                var res = ConnectionHelper.QueryDataBySQL(sql);
-                DataTable dt = new DataTable();
+                var res = ConnectionHelper.QueryDataBySQL(sql, false);
+                //DataTable dt = new DataTable();
 
                if (res.Count() == 0)
                 {
                     conHelper = new ConnectionHelper(string.Empty);
+                    var athenaConn = LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn");                    
                     sql = string.Format(@"select distinct 
                                             ITEM_NUMBER as PARTNUMBER,
                                             DESCRIPTION as PRODUCTDESC,
@@ -75,9 +77,10 @@ namespace KaizenTDSMvcAPI.Controllers
                                             L7_PRODUCT_LINE as L7PRODUCTLINE
                                             from Agile.Tbl_lpn_data where ITEM_NUMBER = '{0}'", partnumber);
 
-                    DBHelper dBHelper = new DBHelper();
-                    dt = dBHelper.GetDataTable(conHelper.GetODBCDBConn(LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn")), sql);
-                    res = ExtensionHelper.ToDynamicList(dt);
+                    using (var sqlConn = new OdbcConnection(athenaConn))
+                    {
+                        res = sqlConn.Query<dynamic>(sql).ToList();
+                    }
                 }
 
                 var rtnObj = new
@@ -135,12 +138,6 @@ namespace KaizenTDSMvcAPI.Controllers
             try
             {
                 ConnectionHelper conHelper = new ConnectionHelper(APIConnectionName);
-                //var root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "App_Data");
-                //var exists = Directory.Exists(root);
-                //if (!exists)
-                //{
-                //    Directory.CreateDirectory("App_Data");
-                //}
 
                 var fileNameItem = TDSFileHelper.GetFileNameByTestHeaderId(testheaderId, tableName, filename);
                 if (fileNameItem == null)
@@ -297,7 +294,7 @@ namespace KaizenTDSMvcAPI.Controllers
                 //    resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "File Not Exists");
                 //    return resp;
                 //}
-                var resultList = ConnectionHelper.QueryDataBySQL(string.Format("Select * From {0} where TestHeaderId = {1}", tableName, testheaderId));
+                var resultList = ConnectionHelper.QueryDataBySQL(string.Format("Select * From {0} where TestHeaderId = {1}", tableName, testheaderId), true);
                 TDSFileHelper.FileExistChecker(resultList, list);
                 //var imageDataList = ConnectionHelper.QueryDataBySQL(string.Format("Select * From ImageData_v where TestHeaderId = {0}", testheaderId));
                 //TDSFileHelper.FileExistChecker(imageDataList, list);
@@ -419,7 +416,7 @@ namespace KaizenTDSMvcAPI.Controllers
                             WHERE owner IN(select sys_context('userenv', 'current_schema') from dual) and object_type='PACKAGE' 
                             and PROCEDURE_NAME IS NOT NULL  ORDER BY OBJECT_NAME, SUBPROGRAM_ID ";
 
-                var res = ConnectionHelper.QueryDataBySQL(sql);
+                var res = ConnectionHelper.QueryDataBySQL(sql, false);
                 var rtnObj = new
                 {
                     OutputList = res.ToList(),
