@@ -241,6 +241,7 @@ namespace KaizenTDSMvcAPI.Utils
         public static List<dynamic> QueryDataBySQL(string sql, bool isCheckAthena)
         {
             List<dynamic> list = new List<dynamic>();
+
             using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
             {
                 list = sqlConn.Query<dynamic>(sql).ToList();

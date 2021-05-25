@@ -86,7 +86,7 @@
       <HintPath>..\packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Oracle.ManagedDataAccess, Version=4.122.19.1, Culture=neutral, PublicKeyToken=89b483f429c47342, processorArchitecture=MSIL">
-      <HintPath>..\packages\Oracle.ManagedDataAccess.19.3.1\lib\net40\Oracle.ManagedDataAccess.dll</HintPath>
+      <HintPath>..\packages\Oracle.ManagedDataAccess.19.11.0\lib\net40\Oracle.ManagedDataAccess.dll</HintPath>
     </Reference>
     <Reference Include="Swashbuckle.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=cd1bb07a5ac7c7bc, processorArchitecture=MSIL">
       <HintPath>..\packages\Swashbuckle.Core.5.6.0\lib\net40\Swashbuckle.Core.dll</HintPath>
@@ -331,6 +331,7 @@
     <Compile Include="Providers\InMemoryMultipartFormDataStreamProvider.cs" />
     <Compile Include="Utils\AccountHelper.cs" />
     <Compile Include="Utils\AWSS3Helper.cs" />
+    <Compile Include="Utils\ColumnAttributeTypeMapper.cs" />
     <Compile Include="Utils\ConnectionHelper.cs" />
     <Compile Include="Utils\DeviceRelationsHelper.cs" />
     <Compile Include="Utils\ExtensionHelper.cs" />

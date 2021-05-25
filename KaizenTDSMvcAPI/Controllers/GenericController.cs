@@ -405,7 +405,7 @@ namespace KaizenTDSMvcAPI.Controllers
             try
             {
                 ConnectionHelper conHelper = new ConnectionHelper(apiConnName);
-                var res = ConnectionHelper.QueryDataBySQL(sql, true);
+                var res = ConnectionHelper.QueryDataBySQL(sql, false);
 
                 var rtnObj = new
                 {
