@@ -10,6 +10,7 @@ using System.Data.Odbc;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using SystemLibrary.Utility;
 
 namespace KaizenTDSMvcAPI.Utils
 {
@@ -237,25 +238,40 @@ namespace KaizenTDSMvcAPI.Utils
         /// </summary>
         /// <param name="sql">input sql</param>
         /// <param name="isCheckAthena">is need to check Athena or not</param>
+        /// <param name="ingoreOracleQuery">Ignore Oracle Query</param>
         /// <returns></returns>
         public static List<dynamic> QueryDataBySQL(string sql, bool isCheckAthena)
         {
             List<dynamic> list = new List<dynamic>();
-
-            using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
-            {
-                list = sqlConn.Query<dynamic>(sql).ToList();
-                
-                //20210407 Jacky Add Athena Query function
-                if (isCheckAthena && list.Count() == 0)
+            try
+            {                
+                using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
                 {
-                    var athenaConn = LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn");
-                    using (var odbcConn = new OdbcConnection(athenaConn))
+                    //If Force to check Athena, then ignore oracle query
+                    if (isCheckAthena == false)
                     {
-                        list = odbcConn.Query<dynamic>(sql).ToList();
+                        list = sqlConn.Query<dynamic>(sql).ToList();
+                    }
+                    else //20210407 Jacky Add Athena Query function
+                    {
+                        var athenaSchema = LookupHelper.GetConfigValueByName("KaizenTDSAthenaSchema").ToUpper();
+                        if (string.IsNullOrEmpty(athenaSchema) == false)
+                        {
+                            LogHelper.WriteLine("Get Data From Athena schema: " + athenaSchema);
+                            sql = AthenaSQLSchemaModification(sql, athenaSchema);
+                            var athenaConn = LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn");
+                            using (var odbcConn = new OdbcConnection(athenaConn))
+                            {
+                                list = odbcConn.Query<dynamic>(sql).ToList();
+                            }
+                        }
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                throw ex;
+            } 
             return list;
         }
 
@@ -283,5 +299,58 @@ namespace KaizenTDSMvcAPI.Utils
             return odbcConn;
         }
 
+        /// <summary>
+        /// AthenaSQLSchemaModification: To Modify extra Athena schema information befor "FROM" script
+        /// </summary>
+        /// <param name="sql">original sql</param>
+        /// <param name="athenaSchema">athena schema name, can query from config table key = "KaizenTDSAthenaSchema"</param>
+        /// <returns></returns>
+        public static string AthenaSQLSchemaModification(string sql, string athenaSchema)
+        {            
+            sql = sql.ToUpper();
+            if (string.IsNullOrEmpty(athenaSchema) == false && sql.Contains("FROM"))
+            {                
+                sql = sql.Replace(" FROM ", string.Format(" FROM {0}.", athenaSchema));
+                sql = sql.Replace(" JOIN ", string.Format(" JOIN {0}.", athenaSchema));
+                sql = sql.Replace(" INNER JOIN ", string.Format(" INNER JOIN {0}.", athenaSchema));
+                sql = sql.Replace(" LEFT JOIN ", string.Format(" LEFT JOIN {0}.", athenaSchema));
+            }
+
+            return sql;
+        }
+
+        /// <summary>
+        /// To check the view before query
+        /// </summary>
+        /// <param name="tableName">Equal to API input APILookupName</param>
+        /// <returns></returns>
+        public static bool CheckAthenaViewExistOrNot(string tableName)
+        {
+            try
+            {
+                var athenaSchema = LookupHelper.GetConfigValueByName("KaizenTDSAthenaSchema").ToUpper();
+                if (string.IsNullOrEmpty(athenaSchema))
+                    return false;
+                var athenaConn = LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn");
+
+                string sql = string.Format(@"SELECT table_name FROM information_schema.tables
+            WHERE upper(information_schema.tables.table_schema) = '{0}' and upper(table_name) = '{1}_V' ", athenaSchema, tableName.ToUpper());
+
+                using (var odbcConn = new OdbcConnection(athenaConn))
+                {
+                    var list = odbcConn.Query<string>(sql).ToList();
+                    if (list.Count() > 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+            return false;
+        }
     }
 }

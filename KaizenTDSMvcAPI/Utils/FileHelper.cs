@@ -203,35 +203,30 @@ namespace KaizenTDSMvcAPI.Utils
             }
         }
 
-        public static FileNameClass GetFileNameByTestHeaderId(string testheaderId, string tableName, string filename)
+        public static FileNameClass GetFileNameByTestHeaderId(string sql, bool isCheckAthena)
         {
             string fullFilePath = string.Empty;
-            string sql = string.Empty;
-            if (string.IsNullOrEmpty(tableName)) //Default XML File Path
-                sql = string.Format(@"SELECT ARCHIVELOCATION ARCHIVEFOLDER, FILENAME, ARCHIVEFILENAME
-                                        FROM TESTHEADER_V WHERE TESTHEADERID = {0} ", testheaderId);
-            else
-            {
-                sql = string.Format(@"SELECT NVL((SELECT ARCHIVELOCATION FROM TESTHEADER_V 
-                                        WHERE TESTHEADERID = {1}), '') ARCHIVEFOLDER,
-                                        FILENAME, ARCHIVEFILENAME
-                                        FROM {0} WHERE TESTHEADERID = {1} AND FILENAME = '{2}' ORDER BY LASTMODIFIEDDATE DESC ", tableName, testheaderId, filename.Trim());
-            }
-            
+
             try
             {
                 List<FileNameClass> list = new List<FileNameClass>();
                 using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
                 {
-                    list = sqlConn.Query<FileNameClass>(sql).ToList();
-                    //list = new List<FileNameClass>(); //For Test Purpose
-                }
-
-                //20210407 Jacky Add Athena Query function
-                if (list.Count() == 0)
-                {
-                    var athenaConn = LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn");
-                    using (var sqlConn = new OdbcConnection(athenaConn))
+                    if (isCheckAthena)
+                    {
+                        //20210601 Jacky Add Athena Query function
+                        var athenaSchema = LookupHelper.GetConfigValueByName("KaizenTDSAthenaSchema").ToUpper();
+                        if (string.IsNullOrEmpty(athenaSchema) == false)
+                        {
+                            sql = ConnectionHelper.AthenaSQLSchemaModification(sql, athenaSchema);
+                            var athenaConnStr = LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn");
+                            using (var atConn = new OdbcConnection(athenaConnStr))
+                            {
+                                list = atConn.Query<FileNameClass>(sql).ToList();
+                            }
+                        }
+                    }
+                    else
                     {
                         list = sqlConn.Query<FileNameClass>(sql).ToList();
                     }
@@ -247,25 +242,27 @@ namespace KaizenTDSMvcAPI.Utils
             }
         }
 
-        public static void FileExistChecker(List<dynamic> list, Dictionary<string, string> s3FileList)
+        public static void FileExistChecker(List<dynamic> list, Dictionary<string, string> s3FileList, bool isCheckAthena)
         {
             try
             {
                 if (list.Count() == 0) 
                     return;
                 var dicList = list.Select(x => x as IDictionary<string, object>).ToList();
-                //To avoid empty archive folder
-                var archiveLoc = dicList.FirstOrDefault()["ARCHIVEFILENAME"].ToString().Replace(dicList.FirstOrDefault()["FILENAME"].ToString(), "");
+                string archiveFileNameKey = isCheckAthena ? "archivefilename" : "ARCHIVEFILENAME"; //Because Athena is using lower case column
+                string fileNameKey = isCheckAthena ? "filename" : "FILENAME"; //Because Athena is using lower case column
+                //To avoid empty archive folder   
+                var archiveLoc = dicList.FirstOrDefault()[archiveFileNameKey].ToString().Replace(dicList.FirstOrDefault()[fileNameKey].ToString(), "");
                 var archiveFolderFiles = Directory.Exists(archiveLoc) ? Directory.GetFiles(archiveLoc).ToList() : new List<string>();
                 foreach (var item in dicList)
                 {
-                    var archiveFN = item["ARCHIVEFILENAME"].ToString();//archiveFNItem.Where(r => r.Key == "ARCHIVEFILENAME").FirstOrDefault();
-                    var fileName = item["FILENAME"].ToString();//archiveFNItem.Where(r => r.Key == "FILENAME").FirstOrDefault();
+                    var archiveFN = item[archiveFileNameKey].ToString();//archiveFNItem.Where(r => r.Key == "ARCHIVEFILENAME").FirstOrDefault();
+                    var fileName = item[fileNameKey].ToString();//archiveFNItem.Where(r => r.Key == "FILENAME").FirstOrDefault();
                     if (archiveFolderFiles.Contains(archiveFN) == false)
                     {
                         var s3File = s3FileList.Where(r => r.Key.Contains(fileName)).FirstOrDefault().Value;
                         if (string.IsNullOrEmpty(s3File) == false)
-                            item["ARCHIVEFILENAME"] = s3File;
+                            item[archiveFileNameKey] = s3File;
                     }
                 }
             }

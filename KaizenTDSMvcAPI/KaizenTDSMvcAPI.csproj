@@ -411,6 +411,7 @@
     </Content>
     <None Include="Properties\PublishProfiles\AWSCASTDSPRD01 - Prod.pubxml" />
     <None Include="Properties\PublishProfiles\AWSSAGTDSPRD01_SAG_Prod.pubxml" />
+    <None Include="Properties\PublishProfiles\HA_TestA.pubxml" />
     <None Include="Properties\PublishProfiles\KaizenDev 8080.pubxml" />
     <None Include="Properties\PublishProfiles\milapptdsprd03 - SJ_WAT.pubxml" />
     <None Include="Properties\PublishProfiles\patapptdsprd01_WAT.pubxml" />

@@ -129,17 +129,23 @@ namespace KaizenTDSMvcAPI.Controllers
         /// <param name="testheaderId"></param>
         /// <param name="tableName"></param>
         /// <param name="filename"></param>
+        /// <param name="isCheckAthena">Default = false; Athena data check only, will ingore check from Oracle</param>
         /// <returns></returns>
+        /// 20210601 Add Athena Data check
         [HttpGet]
         [Route("TestFileDownload/{APIConnectionName}/{testheaderId}/{tableName}/{filename}")]
-        public HttpResponseMessage TestFileDownload(string APIConnectionName, string testheaderId, string tableName, string filename)
+        public HttpResponseMessage TestFileDownload(string APIConnectionName, string testheaderId, string tableName, string filename, bool isCheckAthena = false)
         {
             var resp = new HttpResponseMessage(HttpStatusCode.OK);
             try
             {
                 ConnectionHelper conHelper = new ConnectionHelper(APIConnectionName);
+                string sql = string.Format(@"SELECT (SELECT ARCHIVELOCATION FROM TESTHEADER_V 
+                                        WHERE TESTHEADERID = {1}) ARCHIVEFOLDER,
+                                        FILENAME, ARCHIVEFILENAME
+                                        FROM {0} WHERE TESTHEADERID = {1} {2} ORDER BY LASTMODIFIEDDATE DESC ", tableName, testheaderId, string.IsNullOrEmpty(filename) == false ? "AND FILENAME = '" + filename.Trim() + "'" : string.Empty);
 
-                var fileNameItem = TDSFileHelper.GetFileNameByTestHeaderId(testheaderId, tableName, filename);
+                var fileNameItem = TDSFileHelper.GetFileNameByTestHeaderId(sql, isCheckAthena);
                 if (fileNameItem == null)
                 {
                     resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "Data Not Exists in database");
@@ -151,7 +157,7 @@ namespace KaizenTDSMvcAPI.Controllers
                 //LogHelper.WriteLine("Test");
                 LogHelper.WriteLine(fileName);
                 if (File.Exists(fileName) == false)
-                {
+                {                    
                     //return null;
                     //Download from AWS
                     AWSS3Helper awsHelper = new AWSS3Helper();
@@ -159,6 +165,7 @@ namespace KaizenTDSMvcAPI.Controllers
                     var archiveFolderName = LookupHelper.GetConfigValueByName("Archive_Folder"); //\\thaapptdsdev03\Archive
                     var awsFolderName = LookupHelper.GetConfigValueByName("AWSFolderPath"); //Dev
                     var awsFilePath = fileNameItem.ARCHIVEFOLDER.Replace(archiveFolderName, awsFolderName).Replace(@"\", "/");
+                    LogHelper.WriteLine("Missing from local, download data from AWS path: " + awsFilePath);
                     if (awsHelper.Download_from_s3(bucketName, awsFilePath, fileNameItem.FILENAME, fileNameItem.ARCHIVEFOLDER) == false)
                     {
                         resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "File Not Exists");
@@ -193,16 +200,22 @@ namespace KaizenTDSMvcAPI.Controllers
         /// <param name="testheaderId"></param>
         /// <param name="tableName"></param>
         /// <param name="filename"></param>
+        /// <param name="isCheckAthena">Default = false; Athena data check only, will ingore check from Oracle</param>
         /// <returns></returns>
         [HttpGet]
         [Route("TestFileDownloadNew/{APIConnectionName}/{testheaderId}")]
-        public HttpResponseMessage TestFileDownloadNew(string APIConnectionName, string testheaderId, string tableName, string filename)
+        public HttpResponseMessage TestFileDownloadNew(string APIConnectionName, string testheaderId, string tableName, string filename, bool isCheckAthena = false)
         {
             var resp = new HttpResponseMessage(HttpStatusCode.OK);
             try
             {
                 ConnectionHelper conHelper = new ConnectionHelper(APIConnectionName);
-                var fileNameItem = TDSFileHelper.GetFileNameByTestHeaderId(testheaderId, tableName, filename);
+                string sql = string.Format(@"SELECT (SELECT ARCHIVELOCATION FROM TESTHEADER_V 
+                                        WHERE TESTHEADERID = {1}) ARCHIVEFOLDER,
+                                        FILENAME, ARCHIVEFILENAME
+                                        FROM {0} WHERE TESTHEADERID = {1} AND UPPER(FILENAME) = '{2}' ORDER BY LASTMODIFIEDDATE DESC ", tableName, testheaderId, filename.Trim().ToUpper());
+
+                var fileNameItem = TDSFileHelper.GetFileNameByTestHeaderId(sql, isCheckAthena);
                 if (fileNameItem == null)
                 {
                     resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "Data Not Exists in database");
@@ -224,7 +237,7 @@ namespace KaizenTDSMvcAPI.Controllers
                     int startIdx = archiveChars.IndexOf("Archive");
                     string[] s3Chars = archiveChars.Where(x => archiveChars.IndexOf(x) > startIdx).ToArray();
                     var awsFilePath = awsFolderName + "/" + string.Join("/", s3Chars) + "/" + fileNameItem.FILENAME;
-
+                    LogHelper.WriteLine("Missing from local, download data from AWS path: " + awsFilePath);
                     var stream = awsHelper.Download_from_s3(bucketName, awsFilePath);
                     content = new StreamContent(stream);
                 }
@@ -254,23 +267,27 @@ namespace KaizenTDSMvcAPI.Controllers
         /// <param name="APIConnectionName"></param>
         /// <param name="testheaderId"></param>
         /// <param name="tableName"></param>
+        /// <param name="isCheckAthena">Default = false; Athena data check only, will ingore check from Oracle</param>
         /// <returns></returns>
         [HttpGet]
         [Route("GetAllTestFiles/{APIConnectionName}/{testheaderId}/{tableName}")]
-        public HttpResponseMessage GetAllTestFiles(string APIConnectionName, string testheaderId, string tableName)
+        public HttpResponseMessage GetAllTestFiles(string APIConnectionName, string testheaderId, string tableName, bool isCheckAthena = false)
         {
             var resp = new HttpResponseMessage(HttpStatusCode.OK);
             try
             {
                 ConnectionHelper conHelper = new ConnectionHelper(APIConnectionName);
-                var fileNameItem = TDSFileHelper.GetFileNameByTestHeaderId(testheaderId, string.Empty, string.Empty);
+                string sql = string.Format(@"SELECT (SELECT ARCHIVELOCATION FROM TESTHEADER_V 
+                                        WHERE TESTHEADERID = {1}) ARCHIVEFOLDER,
+                                        FILENAME, ARCHIVEFILENAME
+                                        FROM {0} WHERE TESTHEADERID = {1} ORDER BY LASTMODIFIEDDATE DESC ", tableName, testheaderId);
+
+                var fileNameItem = TDSFileHelper.GetFileNameByTestHeaderId(sql, isCheckAthena);
                 if (fileNameItem == null)
                 {
                     resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "Data Not Exists in database");
                     return resp;
                 }
-                
-
 
                 Dictionary<string, string> list = new Dictionary<string, string>();
                 if (string.IsNullOrEmpty(fileNameItem.ARCHIVEFOLDER) == false)
@@ -289,13 +306,9 @@ namespace KaizenTDSMvcAPI.Controllers
                     list = awsHelper.GenerateAllURL_from_s3(bucketName, awsFilePath);
                 }
 
-                //if (list.Count() == 0)
-                //{
-                //    resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "File Not Exists");
-                //    return resp;
-                //}
-                var resultList = ConnectionHelper.QueryDataBySQL(string.Format("Select * From {0} where TestHeaderId = {1}", tableName, testheaderId), true);
-                TDSFileHelper.FileExistChecker(resultList, list);
+                var resultList = ConnectionHelper.QueryDataBySQL(
+                    string.Format("Select * From {0} where TestHeaderId = {1}", tableName, testheaderId), isCheckAthena);
+                TDSFileHelper.FileExistChecker(resultList, list, isCheckAthena);
                 //var imageDataList = ConnectionHelper.QueryDataBySQL(string.Format("Select * From ImageData_v where TestHeaderId = {0}", testheaderId));
                 //TDSFileHelper.FileExistChecker(imageDataList, list);
                 //var attachmentDataList = ConnectionHelper.QueryDataBySQL(string.Format("Select * From AttachmentData_v where TestHeaderId = {0}", testheaderId));

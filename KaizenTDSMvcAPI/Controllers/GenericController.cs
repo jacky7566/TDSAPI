@@ -17,6 +17,7 @@ using System.Xml;
 using System.Threading.Tasks;
 using System.IO;
 using SystemLibrary.Utility;
+using System.Configuration;
 
 namespace KaizenTDSMvcAPI.Controllers
 {
@@ -32,15 +33,16 @@ namespace KaizenTDSMvcAPI.Controllers
         /// </summary>
         /// <param name="version">Stored Procedure Version</param>
         /// <param name="apiLookupName">API Lookup Name</param>
+        /// <param name="isCheckAthena">Default = false; Athena data check only, will ingore check from Oracle</param>
         /// <param name="format">Return format (xml or json), default = json</param>
         /// <param name="in_criteria">Query Criteria</param>
         /// <returns></returns>
         [HttpGet]
         [Route("{version}/{apiLookupName}")]
-        public HttpResponseMessage Get(string version, string apiLookupName,
+        public HttpResponseMessage Get(string version, string apiLookupName, bool isCheckAthena = false,
             string format = "json", string in_criteria = null)
         {
-            return Get(string.Empty, version, apiLookupName, format, in_criteria);
+            return Get(string.Empty, version, apiLookupName, isCheckAthena, format, in_criteria);
         }
 
         /// <summary>
@@ -48,13 +50,14 @@ namespace KaizenTDSMvcAPI.Controllers
         /// </summary>
         /// <param name="apiConnName">API Connection Name</param>
         /// <param name="version">Stored Procedure Version</param>
-        /// <param name="apiLookupName">API Lookup Name</param>
+        /// <param name="apiLookupName">API Lookup Name, this will same as table name</param>
+        /// <param name="isCheckAthena">Default = false; Athena data check only, will ingore check from Oracle</param>
         /// <param name="format">Return format (xml or json), default = json</param>
         /// <param name="in_criteria">Query Criteria</param>
         /// <returns></returns>
         [HttpGet]
         [Route("{apiConnName}/{version}/{apiLookupName}")]
-        public HttpResponseMessage Get(string apiConnName, string version, string apiLookupName,
+        public HttpResponseMessage Get(string apiConnName, string version, string apiLookupName, bool isCheckAthena = false,
             string format = "json", string in_criteria = null)
         {
             var resp = new HttpResponseMessage(HttpStatusCode.OK);
@@ -69,64 +72,66 @@ namespace KaizenTDSMvcAPI.Controllers
                     packageName = apiLkupList.FirstOrDefault().COMMANDVALUE;
                     xmlBaseTag = apiLkupList.FirstOrDefault().BASETAG;
                 }
-                //else
-                //{
-                //    var lkList = LookupHelper.GetTableStoredProcMap(apiLookupName, "GET", version);
-                //    if (lkList != null && lkList.Count() > 0)
-                //    {
-                //        packageName = lkList.FirstOrDefault().VALUE;
-                //        xmlBaseTag = lkList.FirstOrDefault().ATTRIBUTE;
-                //    }
-                //}
 
+                SPOutputClass spOutput = new SPOutputClass();
                 if (string.IsNullOrEmpty(packageName) == false && string.IsNullOrEmpty(xmlBaseTag) == false)
                 {
-                    //split package name and procedure name
-                    var exeSpArry = packageName.Split('.');
-                    if (exeSpArry.Count() > 1)
+                    if (isCheckAthena) //Check Athena
                     {
-                        var arguments = LookupHelper.GetSPArguments(exeSpArry[1], exeSpArry[0]);
-                        if (arguments != null)
+                        var sql = StoredProcedureHelper.ReplaceSPQueryBySQLForAthena(apiLookupName, in_criteria);
+                        if (ConnectionHelper.CheckAthenaViewExistOrNot(apiLookupName))
                         {
-                            SPOutputClass spOutput = new SPOutputClass();
-                            var reqParamList = Request.GetQueryNameValuePairs().ToList(); 
-                            var itemToRemove = reqParamList.SingleOrDefault(r => r.Key == "format");
-                            reqParamList.Remove(itemToRemove); //This is extra parameter for check, no need send to stored procedure
-
-                            if (reqParamList.Count() > 0)
-                            {
-                                //if exisit token, remove it
-                                if (reqParamList.Where(r => r.Key.ToUpper().Equals("TOKEN")).Count() > 0)
-                                {
-                                    reqParamList.Remove(reqParamList.Where(r => r.Key.ToUpper().Equals("TOKEN")).SingleOrDefault());
-                                }
-                                spOutput = StoredProcedureHelper.GetSPResByReqstr(reqParamList, packageName, arguments); //By using request string to send extra parameter to stored procedure
-                            }
-                            else //No request string and only use default setup
-                            {
-                                spOutput = StoredProcedureHelper.GetResBySPFunc(packageName, in_criteria);
-                            }
-
-                            //Decide output Format xml or json
-                            if (format.ToLower() == "xml")
-                            {
-                                var jsonStr = JsonConvert.SerializeObject(spOutput);
-                                //XmlDocument doc = (XmlDocument)JsonConvert.DeserializeXmlNode("{'" + APILookupName.ToUpper()  + "':" + jsonStr + "}",
-                                jsonStr = jsonStr.Replace("OutputList", apiLookupName.ToUpper());
-                                XmlDocument doc = (XmlDocument)JsonConvert.DeserializeXmlNode(jsonStr,
-                                    string.IsNullOrEmpty(xmlBaseTag) ? "ROOT" : xmlBaseTag);
-                                resp = ExtensionHelper.LogAndResponse(new StringContent(doc.InnerXml, System.Text.Encoding.UTF8, "application/xml"));
-                            }
-                            else
-                            {
-                                resp = ExtensionHelper.LogAndResponse(new ObjectContent<SPOutputClass>(spOutput, new JsonMediaTypeFormatter()));
-                            }                            
+                            spOutput.OutputList = ConnectionHelper.QueryDataBySQL(sql, true);
                         }
+                    }
+                    else //Check Oracle Stored Procedure
+                    {
+                        //split package name and procedure name
+                        var exeSpArry = packageName.Split('.');                        
+                        if (exeSpArry.Count() > 1)
+                        {
+                            var arguments = LookupHelper.GetSPArguments(exeSpArry[1], exeSpArry[0]);
+                            if (arguments != null)
+                            {
+                                var reqParamList = Request.GetQueryNameValuePairs().ToList();
+                                var itemToRemove = reqParamList.SingleOrDefault(r => r.Key == "format");
+                                reqParamList.Remove(itemToRemove); //This is extra parameter for check, no need send to stored procedure
+
+                                if (reqParamList.Count() > 0)
+                                {
+                                    //if exisit token, remove it
+                                    if (reqParamList.Where(r => r.Key.ToUpper().Equals("TOKEN")).Count() > 0)
+                                    {
+                                        reqParamList.Remove(reqParamList.Where(r => r.Key.ToUpper().Equals("TOKEN")).SingleOrDefault());
+                                    }
+                                    spOutput = StoredProcedureHelper.GetSPResByReqstr(reqParamList, packageName, arguments); //By using request string to send extra parameter to stored procedure
+                                }
+                                else //No request string and only use default setup
+                                {
+                                    spOutput = StoredProcedureHelper.GetResBySPFunc(packageName, in_criteria);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotAcceptable,
+                                string.Format("Wrong stored procedure format on lookup table! Stored Procedure: {0}", packageName));
+                        }
+                    }
+                    
+                    //Output: Decide output Format xml or json
+                    if (format.ToLower() == "xml")
+                    {
+                        var jsonStr = JsonConvert.SerializeObject(spOutput);
+                        //XmlDocument doc = (XmlDocument)JsonConvert.DeserializeXmlNode("{'" + APILookupName.ToUpper()  + "':" + jsonStr + "}",
+                        jsonStr = jsonStr.Replace("OutputList", apiLookupName.ToUpper());
+                        XmlDocument doc = (XmlDocument)JsonConvert.DeserializeXmlNode(jsonStr,
+                            string.IsNullOrEmpty(xmlBaseTag) ? "ROOT" : xmlBaseTag);
+                        resp = ExtensionHelper.LogAndResponse(new StringContent(doc.InnerXml, System.Text.Encoding.UTF8, "application/xml"));
                     }
                     else
                     {
-                        resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotAcceptable, 
-                            string.Format("Wrong stored procedure format on lookup table! Stored Procedure: {0}", packageName));
+                        resp = ExtensionHelper.LogAndResponse(new ObjectContent<SPOutputClass>(spOutput, new JsonMediaTypeFormatter()));
                     }
                 }
                 else
@@ -395,17 +400,18 @@ namespace KaizenTDSMvcAPI.Controllers
         /// </summary>
         /// <param name="apiConnName">System name</param>
         /// <param name="sql">SQL</param>
+        /// <param name="isCheckAthena">Default = false; Athena data check only, will ingore check from Oracle</param>
         /// <param name="format">Return format (xml or json), default = json</param>
         /// <returns></returns>
         [HttpPost]
         [Route("GetDataBySQL/{apiConnName}")]
-        public HttpResponseMessage GetDataBySQL(string apiConnName, string sql, string format = "json")
+        public HttpResponseMessage GetDataBySQL(string apiConnName, string sql, bool isCheckAthena = false, string format = "json")
         {
             var resp = new HttpResponseMessage(HttpStatusCode.OK);
             try
             {
                 ConnectionHelper conHelper = new ConnectionHelper(apiConnName);
-                var res = ConnectionHelper.QueryDataBySQL(sql, false);
+                var res = ConnectionHelper.QueryDataBySQL(sql, isCheckAthena);
 
                 var rtnObj = new
                 {

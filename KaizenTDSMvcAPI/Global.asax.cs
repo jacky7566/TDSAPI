@@ -7,6 +7,7 @@ using System.Web.Http;
 using System.Web.Mvc;
 using System.Web.Optimization;
 using System.Web.Routing;
+using SystemLibrary.Utility;
 
 namespace KaizenTDSMvcAPI
 {
@@ -20,6 +21,8 @@ namespace KaizenTDSMvcAPI
             FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
+
+            LogHelper.WriteLine("Application_Start Initial...");
         }
     }
 }

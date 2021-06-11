@@ -1,12 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
-This file is used by the publish/package process of your Web project. You can customize the behavior of this process
-by editing this MSBuild file. In order to learn more about this please visit https://go.microsoft.com/fwlink/?LinkID=208121. 
+https://go.microsoft.com/fwlink/?LinkID=208121. 
 -->
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <TimeStampOfAssociatedLegacyPublishXmlFile />
-    <_PublishTargetUrl>\\patapptdstst05\Shared\KaizenTDS\API\Release_Test</_PublishTargetUrl>
+    <_PublishTargetUrl>\\PATAPPTDSTST05A\Release\KaizenTDSAPI_Prod</_PublishTargetUrl>
   </PropertyGroup>
   <ItemGroup>
     <File Include="ApplicationInsights.config">
@@ -132,17 +130,14 @@ by editing this MSBuild file. In order to learn more about this please visit htt
     <File Include="bin/jose-jwt.dll">
       <publishTime>11/02/2019 01:59:24</publishTime>
     </File>
-    <File Include="bin/KaizenTDSDLL.dll">
-      <publishTime>08/13/2020 17:18:19</publishTime>
-    </File>
     <File Include="bin/KaizenTDSMvcAPI.dll">
-      <publishTime>05/25/2021 21:52:07</publishTime>
+      <publishTime>06/01/2021 16:05:30</publishTime>
     </File>
     <File Include="bin/KaizenTDSMvcAPI.pdb">
-      <publishTime>05/25/2021 21:52:07</publishTime>
+      <publishTime>06/01/2021 16:05:30</publishTime>
     </File>
     <File Include="bin/KaizenTDSMvcAPI.xml">
-      <publishTime>05/25/2021 21:52:06</publishTime>
+      <publishTime>06/01/2021 16:05:30</publishTime>
     </File>
     <File Include="bin/log4net.dll">
       <publishTime>03/08/2017 19:26:22</publishTime>
@@ -226,13 +221,13 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>01/10/2020 16:07:59</publishTime>
     </File>
     <File Include="bin/SystemLibrary.dll">
-      <publishTime>05/25/2021 21:51:56</publishTime>
+      <publishTime>06/01/2021 16:04:40</publishTime>
     </File>
     <File Include="bin/SystemLibrary.dll.config">
       <publishTime>09/23/2019 11:49:41</publishTime>
     </File>
     <File Include="bin/SystemLibrary.pdb">
-      <publishTime>05/25/2021 21:51:56</publishTime>
+      <publishTime>06/01/2021 16:04:40</publishTime>
     </File>
     <File Include="bin/TDS_Data_Upload.dll">
       <publishTime>01/26/2021 21:22:03</publishTime>
@@ -322,7 +317,7 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>01/10/2020 16:07:28</publishTime>
     </File>
     <File Include="Web.config">
-      <publishTime>05/25/2021 21:52:28</publishTime>
+      <publishTime>06/01/2021 16:05:34</publishTime>
     </File>
   </ItemGroup>
 </Project>

@@ -148,7 +148,16 @@ namespace KaizenTDSMvcAPI.Utils
             }
         }
 
-        public static SPOutputClass GetSPResByReqstr(List<KeyValuePair<string, string>> kvpList, string spName, List<SpArgumentsClass> argsList)
+        /// <summary>
+        /// Call Stored Procedure By Request
+        /// </summary>
+        /// <param name="kvpList"></param>
+        /// <param name="spName"></param>
+        /// <param name="argsList"></param>
+        /// <returns></returns>
+        public static SPOutputClass GetSPResByReqstr(List<KeyValuePair<string, string>> kvpList,
+            string spName,
+            List<SpArgumentsClass> argsList)
         {
             //string out_message = string.Empty;
             SPOutputClass rsp = new SPOutputClass();
@@ -259,6 +268,43 @@ namespace KaizenTDSMvcAPI.Utils
             else res = value;
 
             return res;
+        }
+
+        public static string ReplaceSPQueryBySQLForAthena(string tableName, string in_criteria)
+        {
+            var sql = string.Format("SELECT * FROM {0}_V WHERE 1 = 1 ", tableName.ToUpper());
+
+            if (tableName.Trim().ToUpper() == "TESTHEADER")
+            {
+                if (string.IsNullOrEmpty(in_criteria) == false)
+                {
+                    var hasProductFamilyName = in_criteria.ToUpper().IndexOf("PRODUCTFAMILYNAME", 1) > 0;
+                    var hasProductFamilyId = in_criteria.ToUpper().IndexOf("PRODUCTFAMILYID", 1) > 0;
+                    //Replace "and" to special char then count the array
+                    var noOtherCondition = in_criteria.ToUpper().Replace("AND ", "@").Split('@').Count() == 2;                    
+                    if ((hasProductFamilyName || hasProductFamilyId) && noOtherCondition)
+                    {
+                        sql = sql + in_criteria + " order by testheaderid desc LIMIT 50";
+                    }
+                    else
+                    {
+                        sql = sql + in_criteria + " order by testheaderid desc";
+                    }
+                }
+                else
+                {
+                    sql = sql + " order by testheaderid desc LIMIT 50";
+                }                
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(in_criteria) == false)
+                {
+                    sql = sql + in_criteria;
+                }
+            }
+
+            return sql;
         }
     }
 }
