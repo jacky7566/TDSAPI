@@ -87,14 +87,15 @@ namespace KaizenTDSMvcAPI.Controllers
                     else //Check Oracle Stored Procedure
                     {
                         //split package name and procedure name
-                        var exeSpArry = packageName.Split('.');                        
+                        var exeSpArry = packageName.Split('.');
+                        var ingoreKey = new string[] { "format", "isCheckAthena" };
                         if (exeSpArry.Count() > 1)
                         {
                             var arguments = LookupHelper.GetSPArguments(exeSpArry[1], exeSpArry[0]);
                             if (arguments != null)
                             {
                                 var reqParamList = Request.GetQueryNameValuePairs().ToList();
-                                var itemToRemove = reqParamList.SingleOrDefault(r => r.Key == "format");
+                                var itemToRemove = reqParamList.SingleOrDefault(r => ingoreKey.Contains(r.Key));
                                 reqParamList.Remove(itemToRemove); //This is extra parameter for check, no need send to stored procedure
 
                                 if (reqParamList.Count() > 0)
