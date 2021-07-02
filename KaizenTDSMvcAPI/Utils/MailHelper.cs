@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Net.Mail;
 using System.Text;
@@ -206,6 +207,29 @@ namespace KaizenTDSMvcAPI.Utils
             mailCont.Append("<br>");
             mailCont.AppendFormat("Your account ID: {0} ({1}, {2}) has been {3}. ",
                 arc.EMPLOYEEID, arc.FIRSTNAME, arc.LASTNAME, isApprove ? "Activated" : "Rejected by product owner");
+            mailCont.Append("<br>");
+            mailCont.Append("<br>");
+            mailCont.Append("Thank you");
+            mailCont.Append("<br>");
+            mailCont.Append("<br>");
+
+            return mailCont.ToString();
+        }
+
+        public static string BuildTestFileDownloadMail(string filePath, bool isSuccess)
+        {
+            StringBuilder mailCont = new StringBuilder();
+            mailCont.Append("Hi Sir/ Madam, ");
+            mailCont.Append("<br>");
+            mailCont.Append("<br>");
+            if (isSuccess)
+            {
+                mailCont.Append("Your file download request has ready in below folder: <br>");
+                var di = new DirectoryInfo(filePath);
+                mailCont.AppendFormat("<a href='{0}'>{1}</a>", di.Parent.FullName, di.Name);
+            }                
+            else
+                mailCont.AppendFormat("Your file download request has no data found");
             mailCont.Append("<br>");
             mailCont.Append("<br>");
             mailCont.Append("Thank you");

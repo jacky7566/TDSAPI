@@ -286,6 +286,26 @@ namespace KaizenTDSMvcAPI.Utils
             }
             return false;
         }
-        
+
+        public static List<string> GetEmpIdByMail(string email)
+        {
+            List<string> list = new List<string>();
+            try
+            {
+                using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
+                {
+                    string sql = string.Format("SELECT EMPLOYEEID FROM TDSMFG.TDSUSER WHERE UPPER(EMAIL) = '{0}' AND ROWNUM = 1 ORDER BY LASTMODIFIEDDATE DESC ", email.ToUpper());
+                    var m = sqlConn.Query<string>(sql);
+                    list = m.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.WriteLine(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING);
+                throw ex;
+            }
+
+            return list;
+        }
     }
 }

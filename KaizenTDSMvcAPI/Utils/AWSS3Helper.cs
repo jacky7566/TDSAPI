@@ -1,11 +1,14 @@
 ﻿using Amazon;
+using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
+using Amazon.S3.Transfer;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using SystemLibrary.Utility;
 
 namespace KaizenTDSMvcAPI.Utils
 {
@@ -106,6 +109,86 @@ namespace KaizenTDSMvcAPI.Utils
                 throw ex;
             }
             return rs;
+        }
+
+        public void DownloadDirectory_from_s3(string bucketname, string prefix, string downloadPath)
+        {
+            string accessKey = ConfigurationManager.AppSettings["AWSAccessKey"].ToString();
+            string secretKey = ConfigurationManager.AppSettings["AWSSecretKey"].ToString();
+
+            var bucketRegion = RegionEndpoint.USWest2;
+            var credentials = new BasicAWSCredentials(accessKey, secretKey);
+            var client = new AmazonS3Client(credentials, bucketRegion);
+
+            var request = new ListObjectsRequest
+            {
+                BucketName = bucketname,
+                Prefix = prefix
+            };
+
+            try
+            {
+                var utility = new TransferUtility(client);
+                ListObjectsResponse response = null;
+                do
+                {
+                    response = client.ListObjects(request);
+                    var s3Objects = response.S3Objects;
+                    //foreach (var obj in s3Objects)
+                    //{
+                    //    utility.Download($"{downloadPath}\\{obj.Key}", bucketname, obj.Key);
+                    //}
+
+                    s3Objects.AsParallel().WithDegreeOfParallelism(20).ForAll(obj =>
+                    {
+                        if (downloadPath.Contains(obj.Key) == false)
+                        {
+                            var s3ObjArry = obj.Key.Split('/');
+                            var folderName = s3ObjArry[s3ObjArry.Count() - 2];
+                            utility.Download($"{downloadPath}\\{folderName}\\{s3ObjArry.LastOrDefault()}", bucketname, obj.Key);
+                        }
+                            
+                    });
+                    if (response.IsTruncated)
+                    {
+                        request.Marker = response.NextMarker;
+                    }
+                    else { request = null; }
+                }
+                while (request != null);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
+
+        public void DownloadDirectory_from_s3_V2(string bucketname, string prefix, string downloadPath)
+        {
+            string accessKey = ConfigurationManager.AppSettings["AWSAccessKey"].ToString();
+            string secretKey = ConfigurationManager.AppSettings["AWSSecretKey"].ToString();
+
+            var bucketRegion = RegionEndpoint.USWest2;
+            var credentials = new BasicAWSCredentials(accessKey, secretKey);
+            var client = new AmazonS3Client(credentials, bucketRegion);
+
+            var request = new ListObjectsRequest
+            {
+                BucketName = bucketname,
+                Prefix = prefix
+            };
+
+            try
+            {
+                var utility = new TransferUtility(client);
+                utility.DownloadDirectory(bucketname, prefix, downloadPath);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
         }
 
         public string GenerateFileURL_from_s3(string bucketname, string fileName)

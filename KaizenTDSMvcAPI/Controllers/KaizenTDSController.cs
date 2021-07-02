@@ -5,15 +5,19 @@ using Newtonsoft.Json;
 using Oracle.ManagedDataAccess.Client;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
 using System.Data.Odbc;
+using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Formatting;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Security.AccessControl;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
@@ -352,7 +356,12 @@ namespace KaizenTDSMvcAPI.Controllers
             return resp;
         }
 
-
+        /// <summary>
+        /// Call Data Ingestion
+        /// </summary>
+        /// <param name="apiConnName"></param>
+        /// <param name="tableId"></param>
+        /// <returns></returns>
         [HttpPost]
         [Route("TableDataIngestion/{apiConnName}/{tableId}")]
         public HttpResponseMessage TableDataIngestion(string apiConnName, string tableId)
@@ -417,6 +426,12 @@ namespace KaizenTDSMvcAPI.Controllers
             return resp;
         }
 
+        /// <summary>
+        /// Get All Packages By API Connection Name
+        /// </summary>
+        /// <param name="apiConnName">API Connection Name</param>
+        /// <param name="format">Return Format</param>
+        /// <returns></returns>
         [HttpGet]
         [Route("GetAllPackagesByAPIConnName/{apiConnName}")]
         public HttpResponseMessage GetAllPackagesByAPIConnName(string apiConnName, string format = "json")
@@ -454,7 +469,7 @@ namespace KaizenTDSMvcAPI.Controllers
 
             return resp;
         }
-
+      
         /// <summary>
         /// GenerateTestReport
         /// </summary>
@@ -492,5 +507,156 @@ namespace KaizenTDSMvcAPI.Controllers
             return resp;
         }
 
+        /// <summary>
+        /// TestFileDownloader, will create individual folder for access user and service account
+        /// </summary>
+        /// <param name="apiConnName">API Connection Name</param>
+        /// <param name="testHeaderIdList">TestHeaderId List</param>
+        /// <param name="userMail">User Email Address</param>
+        /// <returns></returns>        
+        [HttpPost]
+        [Route("TestFileDownloader/{apiConnName}")]
+        public HttpResponseMessage TestFileDownloader(string apiConnName, List<string> testHeaderIdList, string userMail)
+        {
+            HttpResponseMessage resp = new HttpResponseMessage(HttpStatusCode.OK);
+            ConnectionHelper conHelper = new ConnectionHelper(apiConnName);
+            try
+            {
+                var empId = AccountHelper.GetEmpIdByMail(userMail).FirstOrDefault();
+
+                if (string.IsNullOrEmpty(empId) == false)
+                {
+                    DirectorySecurity ds = new DirectorySecurity();
+                    //LogHelper.WriteLine("Access User Name: " + string.Format(@"LI\{0}", empId));
+                    //LogHelper.WriteLine("System.Security.Principal.WindowsIdentity.GetCurrent().Name: " 
+                    //    + System.Security.Principal.WindowsIdentity.GetCurrent().Name);
+
+                    ds.AddAccessRule(new FileSystemAccessRule(string.Format(@"LI\{0}", empId),
+                        FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                        PropagationFlags.None, AccessControlType.Allow));
+                    ds.AddAccessRule(new FileSystemAccessRule(System.Security.Principal.WindowsIdentity.GetCurrent().Name,
+                        FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                        PropagationFlags.None, AccessControlType.Allow));
+
+                    var tempFolder = ConfigurationManager.AppSettings["TestFilesTempFolder"];
+                    string downloadFolder = Path.Combine(tempFolder,
+                        string.Format("{0}\\{1}", empId.ToUpper(), DateTime.Now.ToString("yyyyMMddHHmm")));
+
+                    if (Directory.Exists(downloadFolder) == false)
+                    {
+                        Directory.CreateDirectory(downloadFolder);
+                    }
+                    string sql = string.Format(@"SELECT H.TESTHEADERID, D.ARCHIVEFILECLEANUPSTATUS,
+                                            H.ARCHIVELOCATION ARCHIVEFOLDER, ATTACH.FILENAME FROM
+                                            (SELECT ARCHIVEFILENAME, FILENAME, TESTHEADERID FROM TESTHEADER_V
+                                                UNION
+                                            SELECT ARCHIVEFILENAME, FILENAME, TESTHEADERID FROM IMAGEDATA_V
+                                                UNION
+                                            SELECT ARCHIVEFILENAME, FILENAME, TESTHEADERID FROM ATTACHMENTDATA_V
+                                                UNION
+                                            SELECT ARCHIVEFILENAME, FILENAME, TESTHEADERID FROM TABLEDATA_V) ATTACH
+                                            INNER JOIN TESTHEADER_V H ON ATTACH.TESTHEADERID = H.TESTHEADERID
+                                            LEFT JOIN DATARETENTIONLOG D ON H.TESTHEADERID = D.TESTHEADERID
+                                            WHERE ATTACH.TESTHEADERID in ({0}) ", string.Join(", ", testHeaderIdList));
+
+                    LogHelper.WriteLine("Query data: " + sql);
+                    List<TestFileDownloadClass> processFileList = new List<TestFileDownloadClass>();
+                    List<Stream> streamList = new List<Stream>();
+                    using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
+                    {
+                        processFileList = sqlConn.Query<TestFileDownloadClass>(sql).ToList();
+                    }
+
+                    Stopwatch timer = new Stopwatch();
+                    timer.Reset();
+                    timer.Start();
+                    if (processFileList.Count() > 0)
+                    {
+                        AWSS3Helper awsHelper = new AWSS3Helper();
+                        var bucketName = LookupHelper.GetConfigValueByName("Archive_BucketName"); //lum-tds
+                        var awsFolderName = LookupHelper.GetConfigValueByName("AWSFolderPath"); //Dev
+
+                        //var testHeaderFolderList = processFileList.Select(r => r.ARCHIVEFOLDER).Distinct().ToList();
+                        var testHeaderFolderList = processFileList.
+                                                   Select(r => new { r.TESTHEADERID, r.ARCHIVEFILECLEANUPSTATUS, r.ARCHIVEFOLDER }).Distinct().ToList();
+
+                        testHeaderFolderList.AsParallel().ForAll(item =>
+                        {
+                            List<string> archiveChars = item.ARCHIVEFOLDER.Split('\\').ToList();
+                            int startIdx = archiveChars.IndexOf("Archive");
+                            string[] s3FolderChars = archiveChars.Where(x => archiveChars.IndexOf(x) > startIdx).ToArray();
+                            //From S3
+                            if (item.ARCHIVEFILECLEANUPSTATUS)
+                            {
+                                LogHelper.WriteLine("Get From S3: " + item.TESTHEADERID);
+                                var awsFilePath = awsFolderName + "/" + string.Join("/", s3FolderChars);
+                                awsHelper.DownloadDirectory_from_s3(bucketName, awsFilePath, downloadFolder);
+                            }
+                            else
+                            {
+                                LogHelper.WriteLine("Get From Local: " + item.TESTHEADERID);
+                                //From Local
+                                var subFolder = Path.Combine(downloadFolder, item.TESTHEADERID);
+                                if (Directory.Exists(subFolder) == false)
+                                    Directory.CreateDirectory(subFolder);
+                                processFileList.Where(r => r.TESTHEADERID == item.TESTHEADERID).AsParallel().ForAll(file =>
+                                {
+                                    var fromFile = Path.Combine(file.ARCHIVEFOLDER, file.FILENAME);
+                                    if (File.Exists(fromFile))
+                                    {
+                                        File.Copy(fromFile, Path.Combine(subFolder, file.FILENAME));
+                                    }
+                                    else
+                                    {
+                                        LogHelper.WriteLine(string.Format(@"Missing [ARCHIVELOCATION] info: {0}, TestHeaderId: {1}", fromFile, item.TESTHEADERID));
+                                    }
+                                });                                
+                            }
+                        });
+                    }
+
+                    timer.Stop();
+                    var exeSec = timer.Elapsed.TotalSeconds.ToString();
+                    //LogHelper.WriteLine("------------1. Is From S3: " + isFromS3);
+                    LogHelper.WriteLine("------------1. Download Time: " + exeSec + "s");
+                    LogHelper.WriteLine("------------2. Folder size = {0} bytes: " + ExtensionHelper.DirSize(new DirectoryInfo(downloadFolder)));
+
+                    if (Directory.GetFiles(downloadFolder, "*.*", SearchOption.AllDirectories).Count() > 0)
+                    {
+                        //ZipFile.CreateFromDirectory(downloadFolder, downloadZipPath);
+                        Directory.SetAccessControl(downloadFolder, ds);
+                        var res = new { FilePath = downloadFolder,
+                            FileCount = Directory.GetFiles(downloadFolder, "*.*", SearchOption.AllDirectories).Count() };
+                        resp = ExtensionHelper.LogAndResponse(new ObjectContent<object>(res, new JsonMediaTypeFormatter()));
+                        //new DirectoryInfo(downloadFolder).Delete(true);
+                        var requestorMails = new List<string>() { userMail };
+                        var downloadSubject = ConfigurationManager.AppSettings["mailTitle"].Trim() 
+                            + " - Test File Download Request";
+                        var isSend = MailHelper.SendMail(string.Empty, requestorMails, downloadSubject,
+                            MailHelper.BuildTestFileDownloadMail(downloadFolder, true), true);
+                    }
+                    else
+                    {
+                        resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "No data found", null);
+                    }
+                }
+                else
+                {
+                    resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound,
+                        "User account not existing in system. User Email: " + userMail, null);
+                }                
+            }
+            catch (Exception ex)
+            {
+                resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.InternalServerError, ExtensionHelper.GetAllFootprints(ex), ex);
+            }
+            //finally
+            //{
+            //    Directory.Delete(downloadFolder);
+            //    File.Delete(downloadZipPath);
+            //}
+
+            return resp;
+        }
     }
 }
