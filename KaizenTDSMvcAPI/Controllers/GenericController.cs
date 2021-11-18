@@ -303,8 +303,8 @@ namespace KaizenTDSMvcAPI.Controllers
             try
             {
                 ConnectionHelper conHelper = new ConnectionHelper(string.Empty);
-                var isUpload = TDSFileHelper.FileUploadAsync(this, folderName);
-                object rtnObj = new { FileName = TDSFileHelper.UploadFileName, IsSuccess = isUpload.Result };
+                var isUpload = Utils.FileHelper.FileUploadAsync(this, folderName);
+                object rtnObj = new { FileName = Utils.FileHelper.UploadFileName, IsSuccess = isUpload.Result };
                 resp = ExtensionHelper.LogAndResponse(new ObjectContent<object>(rtnObj, new JsonMediaTypeFormatter()));
             }
             catch (Exception ex)
@@ -328,10 +328,10 @@ namespace KaizenTDSMvcAPI.Controllers
             object rtnObj = null;
             try
             {
-                var isUpload = TDSFileHelper.FileUploadAsync(this);
+                var isUpload = Utils.FileHelper.FileUploadAsync(this);
                 if (isUpload.Result)
                 {
-                    var ingesRes = new TDS_Data_Upload.Upload(TDSFileHelper.UploadFileName, ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING, this.Url.Content("~/"));
+                    var ingesRes = new TDS_Data_Upload.Upload(Utils.FileHelper.UploadFileName, ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING, this.Url.Content("~/"));
                     if (ingesRes.Upload_File())
                     {
                         rtnObj = new { Id = ingesRes.TestHeaderid, IsSuccess = true };
@@ -361,8 +361,8 @@ namespace KaizenTDSMvcAPI.Controllers
                 resp = ExtensionHelper.LogAndResponse(new ObjectContent<object>(rtnObj, new JsonMediaTypeFormatter()));
                 ExtensionHelper.LogExpSPMessageToDB(ex, ExtensionHelper.GetAllFootprints(ex), HttpStatusCode.Conflict, "FileIngestion_POST", 2, string.Empty);
             }
-            if (File.Exists(TDSFileHelper.UploadFileName))
-                File.Delete(TDSFileHelper.UploadFileName);
+            if (File.Exists(Utils.FileHelper.UploadFileName))
+                File.Delete(Utils.FileHelper.UploadFileName);
 
             return resp;
         }
@@ -380,7 +380,7 @@ namespace KaizenTDSMvcAPI.Controllers
             var resp = new HttpResponseMessage(HttpStatusCode.OK);
             try
             {
-                var result = TDSFileHelper.DownloadUserPhoto(EmployeeId, fileType);
+                var result = Utils.FileHelper.DownloadUserPhoto(EmployeeId, fileType);
                 bool isSuccess = false;
                 isSuccess = (string.IsNullOrEmpty(result) == false);
 

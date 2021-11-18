@@ -1,4 +1,4 @@
-﻿// T4 code generation is enabled for model 'C:\Users\lic67888\Documents\50 Source\KaizenTDSMvcAPI\KaizenTDSMvcAPI\Models\AccessControl.edmx'. 
+﻿// T4 code generation is enabled for model 'C:\SourceControl\Bitbucket\Lumentum\KaizenTDS\KaizenTDSMvcAPI\KaizenTDSMvcAPI\Models\AccessControl.edmx'. 
 // To enable legacy code generation, change the value of the 'Code Generation Strategy' designer
 // property to 'Legacy ObjectContext'. This property is available in the Properties Window when the model
 // is open in the designer.

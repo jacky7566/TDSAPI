@@ -25,6 +25,7 @@ using System.Web.Http.Cors;
 using System.Web.Http.Results;
 using System.Xml;
 using SystemLibrary.Utility;
+using static KaizenTDSMvcAPI.Utils.FileHelper;
 
 namespace KaizenTDSMvcAPI.Controllers
 {
@@ -149,7 +150,7 @@ namespace KaizenTDSMvcAPI.Controllers
                                         FILENAME, ARCHIVEFILENAME
                                         FROM {0} WHERE TESTHEADERID = {1} {2} ORDER BY LASTMODIFIEDDATE DESC ", tableName, testheaderId, string.IsNullOrEmpty(filename) == false ? "AND FILENAME = '" + filename.Trim() + "'" : string.Empty);
 
-                var fileNameItem = TDSFileHelper.GetFileNameByTestHeaderId(sql, isCheckAthena);
+                var fileNameItem = Utils.FileHelper.GetFileNameByTestHeaderId(sql, isCheckAthena);
                 if (fileNameItem == null)
                 {
                     resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "Data Not Exists in database");
@@ -219,7 +220,7 @@ namespace KaizenTDSMvcAPI.Controllers
                                         FILENAME, ARCHIVEFILENAME
                                         FROM {0} WHERE TESTHEADERID = {1} AND UPPER(FILENAME) = '{2}' ORDER BY LASTMODIFIEDDATE DESC ", tableName, testheaderId, filename.Trim().ToUpper());
 
-                var fileNameItem = TDSFileHelper.GetFileNameByTestHeaderId(sql, isCheckAthena);
+                var fileNameItem = Utils.FileHelper.GetFileNameByTestHeaderId(sql, isCheckAthena);
                 if (fileNameItem == null)
                 {
                     resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "Data Not Exists in database");
@@ -266,6 +267,180 @@ namespace KaizenTDSMvcAPI.Controllers
         }
 
         /// <summary>
+        /// TestFileDownloadMulti
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("TestFileDownloadMulti")]
+        public HttpResponseMessage GetAllTestFilesMulti(TestFileInputClass input)
+        {
+            var resp = new HttpResponseMessage(HttpStatusCode.OK);
+            try
+            {
+                ConnectionHelper conHelper = new ConnectionHelper(input.APIConnectionName);
+                var testheaderIds = input.InputList.Select(r => r.TESTHEADERID).Distinct().ToList();
+                var inputFiles = input.InputList.Select(r => r.FILENAME).Distinct().ToList();
+                string sql = string.Format(@"SELECT * FROM TESTHEADERATTACHMENT_V WHERE TESTHEADERID IN ({0}) ORDER BY TESTHEADERID DESC ", string.Join(",", testheaderIds));
+
+                //Get from Oracle first time
+                var fileNameItems = Utils.FileHelper.GetTestFilesByTestHeaderIds(sql, false);
+                //Table data has been clean up, need to retrive back from Athena
+                var athenaTestHeaderIds = fileNameItems.Where(r => r.TDSTABLECLEANUPSTATUS == true).Select(r => r.TESTHEADERID).Distinct();
+                if (athenaTestHeaderIds.Count() > 0)
+                {
+                    sql = string.Format(@"SELECT * FROM TESTHEADERATTACHMENT_V WHERE TESTHEADERID IN ({0}) ORDER BY TESTHEADERID DESC ",
+                        string.Join(",", athenaTestHeaderIds.ToList()));
+                    fileNameItems.AddRange(Utils.FileHelper.GetTestFilesByTestHeaderIds(sql, true));
+                }
+
+                if (fileNameItems == null || fileNameItems.Count() == 0)
+                {
+                    resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "Data Not Exists in database");
+                    return resp;
+                }
+
+                List<StreamContent> streamContents = new List<StreamContent>();
+                List<Byte[]> streamByteList = new List<byte[]>();
+                var files = new List<FileData>();
+                var content = new Utils.FileHelper.MultipartContent();
+                AWSS3Helper awsHelper = new AWSS3Helper();
+                var bucketName = LookupHelper.GetConfigValueByName("Archive_BucketName"); //lum-tds
+                var awsFolderName = LookupHelper.GetConfigValueByName("AWSFolderPath"); //Dev
+
+                fileNameItems.AsParallel().ForAll(item =>
+                {
+                    if (input.InputList.Where(r=> r.FILENAME == item.FILENAME && r.TESTHEADERID == item.TESTHEADERID).ToList().Count() > 0)
+                    {
+                        if (item.ARCHIVEFILECLEANUPSTATUS)
+                        {
+                            List<string> archiveChars = item.ARCHIVEFILENAME.Split('\\').ToList();
+                            int startIdx = archiveChars.IndexOf("Archive");
+                            string[] s3Chars = archiveChars.Where(x => archiveChars.IndexOf(x) > startIdx).ToArray();
+                            var awsFilePath = awsFolderName + "/" + string.Join("/", s3Chars);
+                            //LogHelper.WriteLine("Missing from local, download data from AWS path: " + awsFilePath);
+                            var stream = awsHelper.Download_from_s3(bucketName, awsFilePath);
+                            //streamContents.Add(new StreamContent(stream));
+                            //streamByteList.Add(TDSFileHelper.ReadStream(stream));
+                            var fileData = new FileData { Content = Utils.FileHelper.ReadStream(stream), Name = item.FILENAME };
+                            files.Add(fileData);
+                        }
+                        else
+                        {
+                            var fileStream = new FileStream(item.ARCHIVEFILENAME, FileMode.Open);
+                            //streamByteList.Add(TDSFileHelper.ReadStream(fileStream));
+                            //streamContents.Add(new StreamContent(fileStream));
+                            var fileData = new FileData { Content = Utils.FileHelper.ReadStream(fileStream), Name = item.FILENAME };
+                            files.Add(fileData);
+                        }
+
+                    }                    
+                });
+
+                //content.Headers.ContentType = new MediaTypeHeaderValue(MimeMapping.GetMimeMapping(fileNameItem.FILENAME));
+                //content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+                //{
+                //    FileName = fileNameItem.FILENAME
+                //};
+                //resp.Content = content;
+
+                content.files = files.ToArray();
+                var str = JsonConvert.SerializeObject(content);
+                //var rtnObj = new { OutputList = fileNameItems };
+                resp = ExtensionHelper.LogAndResponse(new ObjectContent<object>(str, new JsonMediaTypeFormatter()));
+            }
+            catch (Exception ex)
+            {
+                resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.InternalServerError, ExtensionHelper.GetAllFootprints(ex), ex);
+            }
+            return resp;
+        }
+
+        /// <summary>
+        /// TestFileDownloadMulti
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("GetAllTestFilesMultiZipped")]
+        public HttpResponseMessage GetAllTestFilesMultiZipped(TestFileInputClass input)
+        {
+            var resp = new HttpResponseMessage(HttpStatusCode.OK);
+            try
+            {
+                ConnectionHelper conHelper = new ConnectionHelper(input.APIConnectionName);
+                var testheaderIds = input.InputList.Select(r => r.TESTHEADERID).Distinct().ToList();
+                var inputFiles = input.InputList.Select(r => r.FILENAME).Distinct().ToList();
+                string sql = string.Format(@"SELECT * FROM TESTHEADERATTACHMENT_V WHERE TESTHEADERID IN ({0}) ORDER BY TESTHEADERID DESC ", string.Join(",", testheaderIds));
+
+                //Get from Oracle first time
+                var fileNameItems = Utils.FileHelper.GetTestFilesByTestHeaderIds(sql, false);
+                //Table data has been clean up, need to retrive back from Athena
+                var athenaTestHeaderIds = fileNameItems.Where(r => r.TDSTABLECLEANUPSTATUS == true).Select(r => r.TESTHEADERID).Distinct();
+                if (athenaTestHeaderIds.Count() > 0)
+                {
+                    sql = string.Format(@"SELECT * FROM TESTHEADERATTACHMENT_V WHERE TESTHEADERID IN ({0}) ORDER BY TESTHEADERID DESC ",
+                        string.Join(",", athenaTestHeaderIds.ToList()));
+                    fileNameItems.AddRange(Utils.FileHelper.GetTestFilesByTestHeaderIds(sql, true));
+                }
+
+                if (fileNameItems == null || fileNameItems.Count() == 0)
+                {
+                    resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "Data Not Exists in database");
+                    return resp;
+                }
+
+                Dictionary<string, Stream> streams = new Dictionary<string, Stream>();
+
+                AWSS3Helper awsHelper = new AWSS3Helper();
+                var bucketName = LookupHelper.GetConfigValueByName("Archive_BucketName"); //lum-tds
+                var awsFolderName = LookupHelper.GetConfigValueByName("AWSFolderPath"); //Dev
+
+                fileNameItems.AsParallel().ForAll(item =>
+                {
+                    if (input.InputList.Where(r => r.FILENAME == item.FILENAME && r.TESTHEADERID == item.TESTHEADERID).ToList().Count() > 0)
+                    {
+                        if (item.ARCHIVEFILECLEANUPSTATUS)
+                        {
+                            List<string> archiveChars = item.ARCHIVEFILENAME.Split('\\').ToList();
+                            int startIdx = archiveChars.IndexOf("Archive");
+                            string[] s3Chars = archiveChars.Where(x => archiveChars.IndexOf(x) > startIdx).ToArray();
+                            var awsFilePath = awsFolderName + "/" + string.Join("/", s3Chars);
+                            //LogHelper.WriteLine("Missing from local, download data from AWS path: " + awsFilePath);
+                            var stream = awsHelper.Download_from_s3(bucketName, awsFilePath);
+                            //streamContents.Add(new StreamContent(stream));
+                            //streamByteList.Add(TDSFileHelper.ReadStream(stream));
+                            //var fileData = new FileData { Content = Utils.FileHelper.ReadStream(stream), Name = item.FILENAME };
+                            //files.Add(fileData);
+                            streams.Add(item.FILENAME, stream);
+                            //streams.Add("1.csv", new FileStream(Path.Combine(fileDirectory, "1.csv"), FileMode.Open, FileAccess.Read));
+                        }
+                        else
+                        {
+                            if (File.Exists(item.ARCHIVEFILENAME) && streams.ContainsKey(item.FILENAME) == false)
+                            {
+                                var fileStream = new FileStream(item.ARCHIVEFILENAME, FileMode.Open, FileAccess.Read);
+                                streams.Add(item.FILENAME, fileStream);
+                            }
+                        }
+
+                    }
+                });
+                
+                resp.Content = new StreamContent(PackageManyZip(streams));
+                resp.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") { FileName = string.Format("download_compressed_{0}.zip", DateTime.Now.ToString("yyyyMMddHHmmss")) };
+                resp.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+                //resp = ExtensionHelper.LogAndResponse(new ObjectContent<object>(streams, new JsonMediaTypeFormatter()));
+            }
+            catch (Exception ex)
+            {
+                resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.InternalServerError, ExtensionHelper.GetAllFootprints(ex), ex);
+            }
+            return resp;
+        }
+
+        /// <summary>
         /// GetAllTestFiles (will check the file from s3 if the data has been deleted)
         /// </summary>
         /// <param name="APIConnectionName"></param>
@@ -286,7 +461,7 @@ namespace KaizenTDSMvcAPI.Controllers
                                         FILENAME, ARCHIVEFILENAME
                                         FROM {0} WHERE TESTHEADERID = {1} ORDER BY LASTMODIFIEDDATE DESC ", tableName, testheaderId);
 
-                var fileNameItem = TDSFileHelper.GetFileNameByTestHeaderId(sql, isCheckAthena);
+                var fileNameItem = Utils.FileHelper.GetFileNameByTestHeaderId(sql, isCheckAthena);
                 if (fileNameItem == null)
                 {
                     resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "Data Not Exists in database");
@@ -312,7 +487,7 @@ namespace KaizenTDSMvcAPI.Controllers
 
                 var resultList = ConnectionHelper.QueryDataBySQL(
                     string.Format("Select * From {0} where TestHeaderId = {1}", tableName, testheaderId), isCheckAthena);
-                TDSFileHelper.FileExistChecker(resultList, list, isCheckAthena);
+                Utils.FileHelper.FileExistChecker(resultList, list, isCheckAthena);
                 //var imageDataList = ConnectionHelper.QueryDataBySQL(string.Format("Select * From ImageData_v where TestHeaderId = {0}", testheaderId));
                 //TDSFileHelper.FileExistChecker(imageDataList, list);
                 //var attachmentDataList = ConnectionHelper.QueryDataBySQL(string.Format("Select * From AttachmentData_v where TestHeaderId = {0}", testheaderId));
@@ -331,6 +506,71 @@ namespace KaizenTDSMvcAPI.Controllers
         }
 
         /// <summary>
+        /// GetAllTestFilesMulti
+        /// </summary>
+        /// <param name="APIConnectionName"></param>
+        /// <param name="testheaderIds">Sperate by comma (,)</param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("GetAllTestFilesMulti/{APIConnectionName}/{testheaderIds}")]
+        public HttpResponseMessage GetAllTestFilesMulti(string APIConnectionName, string testheaderIds)
+        {
+            var resp = new HttpResponseMessage(HttpStatusCode.OK);
+            try
+            {
+                ConnectionHelper conHelper = new ConnectionHelper(APIConnectionName);
+                string sql = string.Format(@"SELECT * FROM TESTHEADERATTACHMENT_V WHERE TESTHEADERID IN ({0}) ORDER BY TESTHEADERID DESC ", testheaderIds);
+
+                //Get from Oracle first time
+                var fileNameItems = Utils.FileHelper.GetTestFilesByTestHeaderIds(sql, false);
+                //Table data has been clean up, need to retrive back from Athena
+                var athenaTestHeaderIds = fileNameItems.Where(r => r.TDSTABLECLEANUPSTATUS == true).Select(r => r.TESTHEADERID).Distinct();
+                if (athenaTestHeaderIds.Count() > 0)
+                {
+                    sql = string.Format(@"SELECT * FROM TESTHEADERATTACHMENT_V WHERE TESTHEADERID IN ({0}) ORDER BY TESTHEADERID DESC ",
+                        string.Join(",", athenaTestHeaderIds.ToList()));
+                    fileNameItems.AddRange(Utils.FileHelper.GetTestFilesByTestHeaderIds(sql, true));
+                }
+
+                if (fileNameItems == null || fileNameItems.Count() == 0)
+                {
+                    resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound, "Data Not Exists in database");
+                    return resp;
+                }
+
+                //File has been archived, need to get URL from S3         
+                if (fileNameItems.Where(r => r.ARCHIVEFILECLEANUPSTATUS == true).Count() > 0)
+                {
+                    AWSS3Helper awsHelper = new AWSS3Helper();
+                    var bucketName = LookupHelper.GetConfigValueByName("Archive_BucketName"); //lum-tds
+                    var awsFolderName = LookupHelper.GetConfigValueByName("AWSFolderPath"); //Dev
+                    Dictionary<string, string> list = new Dictionary<string, string>();
+
+                    fileNameItems.AsParallel().ForAll(item =>
+                    {
+                        if (item.ARCHIVEFILECLEANUPSTATUS)
+                        {
+                            List<string> archiveChars = item.ARCHIVEFILENAME.Split('\\').ToList();
+                            int startIdx = archiveChars.IndexOf("Archive");
+                            string[] s3Chars = archiveChars.Where(x => archiveChars.IndexOf(x) > startIdx).ToArray();
+                            var awsFilePath = awsFolderName + "/" + string.Join("/", s3Chars);
+
+                            item.ARCHIVEFILENAME = awsHelper.GenerateFileURL_from_s3(bucketName, awsFilePath);
+                        }
+                    });
+                }
+
+                var rtnObj = new { OutputList = fileNameItems };
+                resp = ExtensionHelper.LogAndResponse(new ObjectContent<object>(rtnObj, new JsonMediaTypeFormatter()));
+            }
+            catch (Exception ex)
+            {
+                resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.InternalServerError, ExtensionHelper.GetAllFootprints(ex), ex);
+            }
+            return resp;
+        }
+
+        /// <summary>
         /// Get All Dll Version
         /// </summary>
         /// <returns></returns>
@@ -339,6 +579,7 @@ namespace KaizenTDSMvcAPI.Controllers
         public HttpResponseMessage GetAllDLLVersion()
         {
             var resp = new HttpResponseMessage(HttpStatusCode.OK);
+            ConnectionHelper conHelper = new ConnectionHelper(string.Empty);
 
             try
             {
@@ -346,6 +587,38 @@ namespace KaizenTDSMvcAPI.Controllers
                 var ingestionDllVer = AppDomain.CurrentDomain.GetAssemblies().Where(r => r.FullName.StartsWith("IngestionDLL")).FirstOrDefault().GetName().Version;
                 var dataUploadDllVer = AppDomain.CurrentDomain.GetAssemblies().Where(r => r.FullName.StartsWith("TDS_Data_Upload")).FirstOrDefault().GetName().Version;
                 var rtnObj = new { APIVersion = apiVersion.ToString(), IngestionDLLVersion = ingestionDllVer.ToString(), DataUploaderDLLVersion = dataUploadDllVer.ToString() };
+
+                //ExtensionHelper.LogDLLVersion(apiVersion.ToString(), ingestionDllVer.ToString(), dataUploadDllVer.ToString(), Url.Content("~/"));
+                resp = ExtensionHelper.LogAndResponse(new ObjectContent<dynamic>(rtnObj, new JsonMediaTypeFormatter()));
+            }
+            catch (Exception ex)
+            {
+                resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.Conflict, ExtensionHelper.GetAllFootprints(ex), ex);
+                ExtensionHelper.LogExpSPMessageToDB(ex, ExtensionHelper.GetAllFootprints(ex), HttpStatusCode.Conflict, "GetAllDLLVersion", 2, "ExpLog", null);
+            }
+            return resp;
+        }
+
+        /// <summary>
+        /// Get All Dll Version
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("LogAllDLLVersion")]
+        public HttpResponseMessage LogAllDLLVersion()
+        {
+            var resp = new HttpResponseMessage(HttpStatusCode.OK);
+
+            try
+            {
+                var apiVersion = Assembly.GetExecutingAssembly().GetName().Version;
+                var ingestionDllVer = AppDomain.CurrentDomain.GetAssemblies().Where(r => r.FullName.StartsWith("IngestionDLL")).FirstOrDefault().GetName().Version;
+                var dataUploadDllVer = AppDomain.CurrentDomain.GetAssemblies().Where(r => r.FullName.StartsWith("TDS_Data_Upload")).FirstOrDefault().GetName().Version;
+                var uiVersion = ExtensionHelper.GetUIVersion();
+                var rtnObj = new { APIVersion = apiVersion.ToString(), IngestionDLLVersion = ingestionDllVer.ToString(), DataUploaderDLLVersion = dataUploadDllVer.ToString() };
+
+                ExtensionHelper.LogDLLVersion(uiVersion, apiVersion.ToString(), ingestionDllVer.ToString(),
+                    dataUploadDllVer.ToString(), Url.Content("~/"));
                 resp = ExtensionHelper.LogAndResponse(new ObjectContent<dynamic>(rtnObj, new JsonMediaTypeFormatter()));
             }
             catch (Exception ex)
@@ -516,7 +789,8 @@ namespace KaizenTDSMvcAPI.Controllers
         /// <returns></returns>        
         [HttpPost]
         [Route("TestFileDownloader/{apiConnName}")]
-        public HttpResponseMessage TestFileDownloader(string apiConnName, List<string> testHeaderIdList, string userMail)
+        public HttpResponseMessage TestFileDownloader(string apiConnName, List<string> testHeaderIdList,
+            string userMail, bool forceFromS3 = false)
         {
             HttpResponseMessage resp = new HttpResponseMessage(HttpStatusCode.OK);
             ConnectionHelper conHelper = new ConnectionHelper(apiConnName);
@@ -559,7 +833,7 @@ namespace KaizenTDSMvcAPI.Controllers
                                             LEFT JOIN DATARETENTIONLOG D ON H.TESTHEADERID = D.TESTHEADERID
                                             WHERE ATTACH.TESTHEADERID in ({0}) ", string.Join(", ", testHeaderIdList));
 
-                    LogHelper.WriteLine("Query data: " + sql);
+                    //LogHelper.WriteLine("Query data: " + sql);
                     List<TestFileDownloadClass> processFileList = new List<TestFileDownloadClass>();
                     List<Stream> streamList = new List<Stream>();
                     using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
@@ -586,15 +860,15 @@ namespace KaizenTDSMvcAPI.Controllers
                             int startIdx = archiveChars.IndexOf("Archive");
                             string[] s3FolderChars = archiveChars.Where(x => archiveChars.IndexOf(x) > startIdx).ToArray();
                             //From S3
-                            if (item.ARCHIVEFILECLEANUPSTATUS)
+                            if (item.ARCHIVEFILECLEANUPSTATUS || forceFromS3 == true)
                             {
-                                LogHelper.WriteLine("Get From S3: " + item.TESTHEADERID);
+                                //LogHelper.WriteLine("Get From S3: " + item.TESTHEADERID);
                                 var awsFilePath = awsFolderName + "/" + string.Join("/", s3FolderChars);
                                 awsHelper.DownloadDirectory_from_s3(bucketName, awsFilePath, downloadFolder);
                             }
                             else
                             {
-                                LogHelper.WriteLine("Get From Local: " + item.TESTHEADERID);
+                                //LogHelper.WriteLine("Get From Local: " + item.TESTHEADERID);
                                 //From Local
                                 var subFolder = Path.Combine(downloadFolder, item.TESTHEADERID);
                                 if (Directory.Exists(subFolder) == false)
@@ -617,16 +891,22 @@ namespace KaizenTDSMvcAPI.Controllers
 
                     timer.Stop();
                     var exeSec = timer.Elapsed.TotalSeconds.ToString();
+                    var fileSize = ExtensionHelper.DirSize(new DirectoryInfo(downloadFolder));
                     //LogHelper.WriteLine("------------1. Is From S3: " + isFromS3);
-                    LogHelper.WriteLine("------------1. Download Time: " + exeSec + "s");
-                    LogHelper.WriteLine("------------2. Folder size = {0} bytes: " + ExtensionHelper.DirSize(new DirectoryInfo(downloadFolder)));
+                    //LogHelper.WriteLine("------------1. Download Time: " + exeSec + "s");
+                    //LogHelper.WriteLine("------------2. Folder size = {0} bytes: " + ExtensionHelper.DirSize(new DirectoryInfo(downloadFolder)));
 
                     if (Directory.GetFiles(downloadFolder, "*.*", SearchOption.AllDirectories).Count() > 0)
                     {
                         //ZipFile.CreateFromDirectory(downloadFolder, downloadZipPath);
                         Directory.SetAccessControl(downloadFolder, ds);
-                        var res = new { FilePath = downloadFolder,
-                            FileCount = Directory.GetFiles(downloadFolder, "*.*", SearchOption.AllDirectories).Count() };
+                        var res = new
+                        {
+                            FilePath = downloadFolder,
+                            FileCount = Directory.GetFiles(downloadFolder, "*.*", SearchOption.AllDirectories).Count(),
+                            ExeSec = exeSec,
+                            FileSizeBytes = fileSize
+                        };
                         resp = ExtensionHelper.LogAndResponse(new ObjectContent<object>(res, new JsonMediaTypeFormatter()));
                         //new DirectoryInfo(downloadFolder).Delete(true);
                         var requestorMails = new List<string>() { userMail };

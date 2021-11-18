@@ -21,10 +21,11 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using SystemLibrary.Utility;
+using ICSharpCode.SharpZipLib.Zip;
 
 namespace KaizenTDSMvcAPI.Utils
 {
-    public class TDSFileHelper
+    public class FileHelper
     {
         public static string FileUploadPath = ConfigurationManager.AppSettings["FileUploadPath"];
         public static string UploadFileName;
@@ -242,6 +243,44 @@ namespace KaizenTDSMvcAPI.Utils
             }
         }
 
+        public static List<TestFileDownloadClass> GetTestFilesByTestHeaderIds(string sql, bool isCheckAthena)
+        {
+            string fullFilePath = string.Empty;
+
+            try
+            {
+                List<TestFileDownloadClass> list = new List<TestFileDownloadClass>();
+                using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
+                {
+                    if (isCheckAthena)
+                    {
+                        //20210601 Jacky Add Athena Query function
+                        var athenaSchema = LookupHelper.GetConfigValueByName("KaizenTDSAthenaSchema").ToUpper();
+                        if (string.IsNullOrEmpty(athenaSchema) == false)
+                        {
+                            sql = ConnectionHelper.AthenaSQLSchemaModification(sql, athenaSchema);
+                            var athenaConnStr = LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn");
+                            using (var atConn = new OdbcConnection(athenaConnStr))
+                            {
+                                list = atConn.Query<TestFileDownloadClass>(sql).ToList();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        list = sqlConn.Query<TestFileDownloadClass>(sql).ToList();
+                    }
+                }
+
+                return list;
+            }
+            catch (Exception ex)
+            {
+                LogHelper.WriteLine(ex.ToString());
+                throw ex;
+            }
+        }
+
         public static void FileExistChecker(List<dynamic> list, Dictionary<string, string> s3FileList, bool isCheckAthena)
         {
             try
@@ -284,6 +323,64 @@ namespace KaizenTDSMvcAPI.Utils
                 }
                 return ms.ToArray();
             }
+        }
+
+        public class MultipartContent
+        {
+            public FileData[] files;
+        }
+        public class FileData
+        {
+            public byte[] Content;
+            public string Name;
+        }
+
+        /// <summary>
+        /// compress mutiple files and return a compressed stream
+        /// </summary>
+        /// <param name="streams">
+        /// key is file name
+        /// value is compressed stream
+        /// </param>
+        /// <returns>return a stream compressed</returns>
+        public static Stream PackageManyZip(Dictionary<string, Stream> streams)
+        {
+            byte[] buffer = new byte[6500];
+            MemoryStream returnStream = new MemoryStream();
+            var zipMs = new MemoryStream();
+
+            using (ZipOutputStream zipStream = new ZipOutputStream(zipMs))
+            {
+                zipStream.SetLevel(9);
+                foreach (var kv in streams)
+                {
+                    string fileName = kv.Key;
+                    using (var streamInput = kv.Value)
+                    {
+                        zipStream.PutNextEntry(new ZipEntry(fileName));
+                        while (true)
+                        {
+                            var readCount = streamInput.Read(buffer, 0, buffer.Length);
+                            if (readCount > 0)
+                            {
+                                zipStream.Write(buffer, 0, readCount);
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                        zipStream.Flush();
+                    }
+                }
+
+                zipStream.Finish();
+                zipMs.Position = 0;
+                zipMs.CopyTo(returnStream, 5600);
+            }
+
+            returnStream.Position = 0;
+            return returnStream;
         }
     }
 }

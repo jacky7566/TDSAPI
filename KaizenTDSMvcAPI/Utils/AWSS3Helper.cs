@@ -70,6 +70,49 @@ namespace KaizenTDSMvcAPI.Utils
 
         }
 
+        public Stream Download_from_s3_New(string bucketname, string awsFileFullName, string Str_Dest_Path)
+        {
+            MemoryStream rs = new MemoryStream();
+            string Str_Res = string.Empty;
+            GetObjectRequest Req = new GetObjectRequest();
+            GetObjectResponse resp = new GetObjectResponse();
+            try
+            {
+                string accessKey = ConfigurationManager.AppSettings["AWSAccessKey"].ToString();
+                string secretKey = ConfigurationManager.AppSettings["AWSSecretKey"].ToString();
+                AmazonS3Config config = new AmazonS3Config();
+                config.RegionEndpoint = RegionEndpoint.USWest2;
+
+                AmazonS3Client S3_Client = new AmazonS3Client(accessKey, secretKey, config);
+                ListObjectsRequest request = new ListObjectsRequest();
+                request.BucketName = bucketname;
+                request.Prefix = awsFileFullName;
+
+                ListObjectsResponse response = S3_Client.ListObjects(request);
+                var file = response.S3Objects.FindAll(r => r.Key.Contains(awsFileFullName)).OrderByDescending(r => r.LastModified).FirstOrDefault();
+                if (response.S3Objects.Count() > 0 && file != null)
+                {
+                    Req.BucketName = file.BucketName;
+                    Req.Key = file.Key;
+                    resp = S3_Client.GetObject(Req);
+                    var getObjectResponse = S3_Client.GetObject(Req);
+   
+                    if (!Directory.Exists(Str_Dest_Path))
+                    {
+                        Directory.CreateDirectory(Str_Dest_Path);
+                    }
+                    //string fileName = file.Key.Split('/').Last();
+                    resp.WriteResponseStreamToFile(System.IO.Path.Combine(Str_Dest_Path, resp.Key));
+                }
+                else return null;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return rs;
+        }
+
         public Stream Download_from_s3(string bucketname, string awsFileFullName)
         {
             MemoryStream rs = new MemoryStream();

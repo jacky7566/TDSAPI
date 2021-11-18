@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using KaizenTDSMvcAPI.Models;
+using KaizenTDSMvcAPI.Models.KaizenTDSClasses;
 using Newtonsoft.Json;
 using Oracle.ManagedDataAccess.Client;
 using Oracle.ManagedDataAccess.Types;
@@ -331,6 +332,73 @@ namespace KaizenTDSMvcAPI.Utils
                 size += DirSize(di);
             }
             return size;
+        }
+
+        public static bool LogDLLVersion(string uIVersion, string apiVersion, string ingestionDllVer, string dataUploadDllVer, string baseURL)
+        {
+            try
+            {
+                var serverName = System.Environment.MachineName;
+                var systemName = ConfigurationManager.AppSettings.AllKeys.Where(r => r == "SystemName").Count() > 0 ? ConfigurationManager.AppSettings["SystemName"].ToString() : string.Empty;
+
+                var sql = string.Format("SELECT * FROM SYSTEMVERSION WHERE SYSTEMNAME = '{0}' AND SERVERNAME = '{1}' ", systemName, serverName);
+
+                using (var sqlConn = new OracleConnection(ConfigurationManager.AppSettings["MESDEV_TDSMFG"].ToString()))
+                {
+                    var list = sqlConn.Query<SystemVersionClass>(sql).ToList();
+
+                    if (list.Count() > 0)
+                    {
+                        var svId = list.FirstOrDefault().SYSTEMVERSIONID;
+                        if (uIVersion.Equals(list.FirstOrDefault().UIVERSION) == false ||
+                            apiVersion.Equals(list.FirstOrDefault().APIVERSION) == false ||
+                            ingestionDllVer.Equals(list.FirstOrDefault().INGESTIONDLLVERSION) == false ||
+                            dataUploadDllVer.Equals(list.FirstOrDefault().DATAUPLOADERVERSION) == false)
+                        {
+                            sql = string.Format(@"INSERT INTO TDSMFGHIST.SYSTEMVERSION 
+                                    (SYSTEMVERSIONID, SYSTEMNAME, SERVERNAME, SYSTEMURL, UIVERSION, APIVERSION, INGESTIONDLLVERSION, DATAUPLOADERVERSION, CREATEDBY, CREATEDDATE, LASTMODIFIEDBY, LASTMODIFIEDDATE, TRANSACTIONDATE, TRANSACTIONBY, TRANSACTIONTYPE)
+                                    SELECT S.*, SYSDATE TRANSACTIONDATE, 'SYS' TRANSACTIONBY, 'UPDATE' TRANSACTIONTYPE FROM SYSTEMVERSION S
+                                    WHERE SYSTEMVERSIONID = {0} ", svId);
+
+                            sqlConn.Execute(sql);
+                            LogHelper.WriteLine(string.Format("Insert DLL Version History => SQL: {0}", sql));
+
+                            sql = string.Format("UPDATE SYSTEMVERSION SET APIVERSION = '{0}', INGESTIONDLLVERSION = '{1}', DATAUPLOADERVERSION = '{2}', UIVERSION = '{3}', LASTMODIFIEDDATE = SYSDATE  WHERE SYSTEMVERSIONID = {4} ", apiVersion, ingestionDllVer, dataUploadDllVer, uIVersion, svId);
+                            LogHelper.WriteLine(string.Format("Update DLL Version => SQL: {0}", sql));
+                        }
+                        else
+                        {
+                            LogHelper.WriteLine(string.Format("No need to update version => UI Version: {0}, API Version: {1}, Ingestion DLL Version: {2}, Data Uploader DLL Version: {3}", uIVersion, apiVersion, ingestionDllVer, dataUploadDllVer));
+                        }
+                    }
+                    else
+                    {
+                        sql = string.Format("INSERT INTO SYSTEMVERSION (SYSTEMVERSIONID, SYSTEMNAME, SERVERNAME, SYSTEMURL, UIVERSION, APIVERSION, INGESTIONDLLVERSION, DATAUPLOADERVERSION, CREATEDBY, CREATEDDATE, LASTMODIFIEDBY, LASTMODIFIEDDATE) VALUES (SEQ_SYSTEMVERSION.NEXTVAL, '{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', 'SYS', SYSDATE, 'SYS', SYSDATE) ", systemName, System.Environment.MachineName, baseURL, uIVersion, apiVersion, ingestionDllVer, dataUploadDllVer);
+
+                        LogHelper.WriteLine(string.Format("Insert DLL Version => SQL: {0}", sql));
+                    }
+                    return sqlConn.Execute(sql) > 0 ? true : false;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public static string GetUIVersion()
+        {
+            var configFilePath = ConfigurationManager.AppSettings["KaizenTDSUIConfigFile"].ToString();
+            if (File.Exists(configFilePath))
+            {
+                string[] lines = File.ReadAllLines(configFilePath);
+                var versionLine = lines.Where(r => r.StartsWith("Version"));
+                if (versionLine.Count() > 0)
+                {
+                    return versionLine.FirstOrDefault().Split(':').LastOrDefault().TrimStart();
+                }
+            }
+            return "1.0.0";
         }
     }
 }
