@@ -7,6 +7,7 @@ by editing this MSBuild file. In order to learn more about this please visit htt
   <PropertyGroup>
     <TimeStampOfAssociatedLegacyPublishXmlFile />
     <_PublishTargetUrl>\\AWSCASTDSPRD01\Tools\KaizenTDS_App_Publish\API\Prod</_PublishTargetUrl>
+    <History>True|2022-03-17T14:24:40.5743193Z;</History>
   </PropertyGroup>
   <ItemGroup>
     <File Include="ApplicationInsights.config">
@@ -142,13 +143,13 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>08/13/2020 17:18:19</publishTime>
     </File>
     <File Include="bin/KaizenTDSMvcAPI.dll">
-      <publishTime>11/18/2021 13:28:36</publishTime>
+      <publishTime>03/17/2022 22:23:59</publishTime>
     </File>
     <File Include="bin/KaizenTDSMvcAPI.pdb">
-      <publishTime>11/18/2021 13:28:36</publishTime>
+      <publishTime>03/17/2022 22:23:59</publishTime>
     </File>
     <File Include="bin/KaizenTDSMvcAPI.xml">
-      <publishTime>11/18/2021 13:28:36</publishTime>
+      <publishTime>03/17/2022 22:23:59</publishTime>
     </File>
     <File Include="bin/log4net.dll">
       <publishTime>03/08/2017 19:26:22</publishTime>
@@ -235,13 +236,13 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>01/10/2020 16:07:59</publishTime>
     </File>
     <File Include="bin/SystemLibrary.dll">
-      <publishTime>11/18/2021 13:27:55</publishTime>
+      <publishTime>03/17/2022 22:22:16</publishTime>
     </File>
     <File Include="bin/SystemLibrary.dll.config">
-      <publishTime>09/23/2019 11:49:41</publishTime>
+      <publishTime>02/23/2022 14:20:10</publishTime>
     </File>
     <File Include="bin/SystemLibrary.pdb">
-      <publishTime>11/18/2021 13:27:55</publishTime>
+      <publishTime>03/17/2022 22:22:16</publishTime>
     </File>
     <File Include="bin/TDS_Data_Upload.dll">
       <publishTime>01/26/2021 21:22:03</publishTime>
@@ -331,7 +332,7 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>01/10/2020 16:07:28</publishTime>
     </File>
     <File Include="Web.config">
-      <publishTime>11/18/2021 13:28:43</publishTime>
+      <publishTime>03/17/2022 22:24:06</publishTime>
     </File>
   </ItemGroup>
 </Project>

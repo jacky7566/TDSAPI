@@ -85,6 +85,7 @@ namespace KaizenTDSMvcAPI.Utils
             object output;
             int out_is_success = 0;
             string out_message = string.Empty;
+            string out_parameter = string.Empty; //20220823 for insert package special output parameter usage
             try
             {
                 using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
@@ -110,6 +111,11 @@ namespace KaizenTDSMvcAPI.Utils
                                 sqlConn.Execute(StoredProcedureName, dps, commandType: System.Data.CommandType.StoredProcedure);
                                 out_is_success = dps.Get<OracleDecimal>("OUT_IS_SUCCESS").ToInt32();
                                 out_message = dps.Get<OracleString>("OUT_MESSAGE").ToString();
+                                if (arguments.Where(r=> r.ARGUMENT_NAME == "OUT_PARAMETER").Any())
+                                {
+                                    out_parameter = dps.Get<OracleString>("OUT_PARAMETER").ToString();
+                                }
+
                                 if (out_is_success == 1)
                                 {
                                     if (string.IsNullOrEmpty(out_message))
@@ -126,16 +132,13 @@ namespace KaizenTDSMvcAPI.Utils
                         else
                         {
                             out_message = string.Format("Wrong stored procedure format on lookup table! Stored Procedure: {0}", StoredProcedureName);
-                        }
-
-
-                   
+                        }                   
                     }
                     else
                     {
                         out_message = "Please check your input!";                        
                     }
-                    output = new { out_is_success, out_message };
+                    output = new { out_is_success, out_message, out_parameter };
                     return output;
                 }
             }

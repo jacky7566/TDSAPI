@@ -25,7 +25,7 @@ namespace KaizenTDSMvcAPI.Controllers
     /// Generic Stored Procedue Get/Post API
     /// </summary>
     [EnableCors(origins: "*", headers: "*", methods: "*")]
-    [RoutePrefix("api/Generic")]    
+    [RoutePrefix("api/Generic")]
     public class GenericController : ApiController
     {
         /// <summary>
@@ -119,7 +119,7 @@ namespace KaizenTDSMvcAPI.Controllers
                                 string.Format("Wrong stored procedure format on lookup table! Stored Procedure: {0}", packageName));
                         }
                     }
-                    
+
                     //Output: Decide output Format xml or json
                     if (format.ToLower() == "xml")
                     {
@@ -211,7 +211,7 @@ namespace KaizenTDSMvcAPI.Controllers
                 }
             }
             catch (Exception ex)
-            {                
+            {
                 resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.Conflict, ExtensionHelper.GetAllFootprints(ex), ex);
                 ExtensionHelper.LogExpSPMessageToDB(ex, ExtensionHelper.GetAllFootprints(ex), HttpStatusCode.Conflict, apiLookupName + "_" + operation, 2, string.Empty);
             }
@@ -408,7 +408,7 @@ namespace KaizenTDSMvcAPI.Controllers
         [Route("GetDataBySQL/{apiConnName}")]
         public HttpResponseMessage GetDataBySQL(string apiConnName, string sql, bool isCheckAthena = false, string format = "json")
         {
-            var resp = new HttpResponseMessage(HttpStatusCode.OK);
+            var resp = new HttpResponseMessage(HttpStatusCode.OK);            
             try
             {
                 ConnectionHelper conHelper = new ConnectionHelper(apiConnName);
@@ -435,6 +435,47 @@ namespace KaizenTDSMvcAPI.Controllers
             {
                 resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.Conflict, ExtensionHelper.GetAllFootprints(ex), ex);
                 ExtensionHelper.LogExpSPMessageToDB(ex, ExtensionHelper.GetAllFootprints(ex), HttpStatusCode.Conflict, "GetDataBySQL", 2, sql, null);
+            }
+
+            return resp;
+        }
+
+        /// <summary>
+        /// Get Data By SQL
+        /// </summary>
+        /// <param name="input">GetDataBySQLClass</param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("GetDataBySQLNew")]
+        public HttpResponseMessage GetDataBySQLNew(GetDataBySQLClass input)
+        {
+            var resp = new HttpResponseMessage(HttpStatusCode.OK);
+            try
+            {
+                ConnectionHelper conHelper = new ConnectionHelper(input.apiConnName);
+                var res = ConnectionHelper.QueryDataBySQL(input.sql, input.isCheckAthena);
+
+                var rtnObj = new
+                {
+                    OutputList = res.ToList(),
+                    TotalCount = res.Count()
+                };
+                if (input.format.ToLower() == "xml")
+                {
+                    var jsonStr = JsonConvert.SerializeObject(rtnObj);
+                    XmlDocument doc = (XmlDocument)JsonConvert.DeserializeXmlNode(jsonStr, "root");
+                    //jsonStr = jsonStr.Replace("OutputList", "root");
+                    resp = ExtensionHelper.LogAndResponse(new StringContent(doc.InnerXml, System.Text.Encoding.UTF8, "application/xml"));
+                }
+                else
+                {
+                    resp = ExtensionHelper.LogAndResponse(new ObjectContent<dynamic>(rtnObj, new JsonMediaTypeFormatter()));
+                }
+            }
+            catch (Exception ex)
+            {
+                resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.Conflict, ExtensionHelper.GetAllFootprints(ex), ex);
+                ExtensionHelper.LogExpSPMessageToDB(ex, ExtensionHelper.GetAllFootprints(ex), HttpStatusCode.Conflict, "GetDataBySQL", 2, input.sql, null);
             }
 
             return resp;

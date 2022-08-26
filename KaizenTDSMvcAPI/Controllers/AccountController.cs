@@ -255,18 +255,26 @@ namespace KaizenTDSMvcAPI.Controllers
         {
             var resp = new HttpResponseMessage(HttpStatusCode.OK);
             ConnectionHelper connectionHelper = new ConnectionHelper(string.Empty);
-
             try
             {
-                if (AccountHelper.DoesUserExist(employeeId))
+                var isSpecialAD = ConfigurationManager.AppSettings.AllKeys.Contains("ADSpecialCheck")
+                    ? bool.Parse(ConfigurationManager.AppSettings["ADSpecialCheck"].ToString()) : false;
+
+                bool isValidate = false;
+                if (isSpecialAD == false)
+                    isValidate = AccountHelper.DoesUserExist(employeeId);
+                else
+                    isValidate = AccountHelper.DoesUserExistSpecial(employeeId);                              
+
+                if (isValidate)
                 {
                     resp = ExtensionHelper.LogAndResponse(new StringContent("Employee Id exsit!"));
                 }
-                else
+                else // For FBN server usage
                 {
                     resp = ExtensionHelper.LogAndResponse(null, HttpStatusCode.NotFound,
                         string.Format("Employee Id not exist! UserName: {0}", employeeId));
-                }
+                }                
             }
             catch (Exception ex)
             {

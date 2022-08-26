@@ -82,7 +82,7 @@ namespace KaizenTDSMvcAPI.Utils
             catch (Exception)
             {
                 LogHelper.WriteLine(ldap + " search failed");
-                //throw ex;
+                throw;
             }
             return result;
         }
@@ -143,16 +143,50 @@ namespace KaizenTDSMvcAPI.Utils
         {
             string strDomain = "{0}.li.lumentuminc.net/DC=li,DC=lumentuminc,DC=net";
 
-            foreach (string ldap in _ldaps)
+            try
             {
-                string path = string.Format(strDomain, ldap);
-                using (var domainContext = new PrincipalContext(ContextType.Domain, null, path))
+                foreach (string ldap in _ldaps)
                 {
-                    using (var foundUser = UserPrincipal.FindByIdentity(domainContext, IdentityType.SamAccountName, userName))
+                    string path = string.Format(strDomain, ldap);
+                    using (var domainContext = new PrincipalContext(ContextType.Domain, null, path))
                     {
-                        return foundUser != null;
+                        using (var foundUser = UserPrincipal.FindByIdentity(domainContext, IdentityType.SamAccountName, userName))
+                        {
+                            return foundUser != null;
+                        }
                     }
                 }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
+            return false;
+        }
+
+        public static bool DoesUserExistSpecial(string userName)
+        {
+            string adminUid = "svc_tds_fbn_prd";
+            string adminPwd = "%XNi@hC][Wc(";
+
+            try
+            {
+                using (var context = new PrincipalContext(ContextType.Domain, "li.lumentuminc.net", adminUid, adminPwd))
+                {
+                    using (UserPrincipal user = new UserPrincipal(context))
+                    {
+                        user.SamAccountName = userName;
+                        using (var searcher = new PrincipalSearcher(user))
+                        {
+                            return searcher.FindOne() != null;
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                throw;
             }
             return false;
         }
