@@ -335,6 +335,8 @@ namespace KaizenTDSMvcAPI.Controllers
                     if (ingesRes.Upload_File())
                     {
                         rtnObj = new { Id = ingesRes.TestHeaderid, IsSuccess = true };
+                        if (File.Exists(Utils.FileHelper.UploadFileName)) //Only delete while success
+                            File.Delete(Utils.FileHelper.UploadFileName);
                     }
                     else
                     {
@@ -361,8 +363,6 @@ namespace KaizenTDSMvcAPI.Controllers
                 resp = ExtensionHelper.LogAndResponse(new ObjectContent<object>(rtnObj, new JsonMediaTypeFormatter()));
                 ExtensionHelper.LogExpSPMessageToDB(ex, ExtensionHelper.GetAllFootprints(ex), HttpStatusCode.Conflict, "FileIngestion_POST", 2, string.Empty);
             }
-            if (File.Exists(Utils.FileHelper.UploadFileName))
-                File.Delete(Utils.FileHelper.UploadFileName);
 
             return resp;
         }

@@ -78,7 +78,6 @@ namespace KaizenTDSMvcAPI.Controllers
                                             L3_BUSINESS_GROUP as L3BUSINESSGROUP,
                                             L4_BUSINESS_UNIT as L4BUSINESSUNITDESC,
                                             L5_PRODUCT_LINE as L5PRODUCTLINEDESC,
-                                            L6_PRODUCT_FAMILY as L6PRODUCTFAMILY,
                                             L7_PRODUCT_LINE as L7PRODUCTLINE
                                             from Agile.Tbl_lpn_data where ITEM_NUMBER = '{0}'", partnumber);
 

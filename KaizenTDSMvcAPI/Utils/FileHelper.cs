@@ -41,14 +41,14 @@ namespace KaizenTDSMvcAPI.Utils
                     return false;
                 }
 
+                var uiUpdPath = LookupHelper.GetConfigValueByName("UI_UploadPath");
+                if (string.IsNullOrEmpty(uiUpdPath) == false)
+                {
+                    root = uiUpdPath;
+                }
+
                 if (string.IsNullOrEmpty(folderName) == false)
                 {
-
-                    var uiUpdPath = LookupHelper.GetConfigValueByName("UI_UploadPath");
-                    if (string.IsNullOrEmpty(uiUpdPath))
-                    {
-                        throw new Exception("");
-                    }
                     root = Path.Combine(uiUpdPath, folderName);
                 }
 

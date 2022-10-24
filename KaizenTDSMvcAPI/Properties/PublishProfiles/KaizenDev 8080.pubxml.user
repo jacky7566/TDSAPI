@@ -7,7 +7,7 @@ by editing this MSBuild file. In order to learn more about this please visit htt
   <PropertyGroup>
     <TimeStampOfAssociatedLegacyPublishXmlFile />
     <_PublishTargetUrl>\\THAAPPTDSDEV03\KaizenTDS\App\API\Tes</_PublishTargetUrl>
-    <History>True|2022-08-23T15:29:17.4746505Z;True|2022-08-23T13:57:47.2807518+08:00;True|2022-08-23T13:54:44.1541484+08:00;True|2022-08-23T13:20:23.9977149+08:00;True|2022-03-09T15:11:28.4915416+08:00;True|2022-03-09T15:09:21.4360076+08:00;True|2022-03-09T15:00:13.9691874+08:00;False|2022-03-09T14:57:58.8190371+08:00;False|2022-03-09T14:56:24.0085944+08:00;False|2022-03-09T14:55:58.5901713+08:00;False|2022-03-09T14:55:04.0653060+08:00;True|2022-02-17T15:13:21.7557314+08:00;</History>
+    <History>True|2022-09-30T01:38:16.6574439Z;True|2022-08-23T23:29:17.4746505+08:00;True|2022-08-23T13:57:47.2807518+08:00;True|2022-08-23T13:54:44.1541484+08:00;True|2022-08-23T13:20:23.9977149+08:00;True|2022-03-09T15:11:28.4915416+08:00;True|2022-03-09T15:09:21.4360076+08:00;True|2022-03-09T15:00:13.9691874+08:00;False|2022-03-09T14:57:58.8190371+08:00;False|2022-03-09T14:56:24.0085944+08:00;False|2022-03-09T14:55:58.5901713+08:00;False|2022-03-09T14:55:04.0653060+08:00;True|2022-02-17T15:13:21.7557314+08:00;</History>
   </PropertyGroup>
   <ItemGroup>
     <File Include="ApplicationInsights.config">
@@ -146,13 +146,13 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>08/13/2020 17:18:19</publishTime>
     </File>
     <File Include="bin/KaizenTDSMvcAPI.dll">
-      <publishTime>08/23/2022 23:28:57</publishTime>
+      <publishTime>09/30/2022 09:37:53</publishTime>
     </File>
     <File Include="bin/KaizenTDSMvcAPI.pdb">
-      <publishTime>08/23/2022 23:28:57</publishTime>
+      <publishTime>09/30/2022 09:37:53</publishTime>
     </File>
     <File Include="bin/KaizenTDSMvcAPI.xml">
-      <publishTime>08/23/2022 23:28:57</publishTime>
+      <publishTime>09/30/2022 09:37:52</publishTime>
     </File>
     <File Include="bin/log4net.dll">
       <publishTime>12/17/2021 18:45:06</publishTime>
@@ -299,13 +299,13 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>11/28/2018 21:04:24</publishTime>
     </File>
     <File Include="bin/SystemLibrary.dll">
-      <publishTime>08/23/2022 23:28:29</publishTime>
+      <publishTime>09/30/2022 08:58:21</publishTime>
     </File>
     <File Include="bin/SystemLibrary.dll.config">
       <publishTime>04/06/2022 23:05:34</publishTime>
     </File>
     <File Include="bin/SystemLibrary.pdb">
-      <publishTime>08/23/2022 23:28:29</publishTime>
+      <publishTime>09/30/2022 08:58:21</publishTime>
     </File>
     <File Include="bin/TDS_Data_Upload.dll">
       <publishTime>01/26/2021 21:22:03</publishTime>
@@ -542,7 +542,7 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>01/10/2020 00:07:28</publishTime>
     </File>
     <File Include="Web.config">
-      <publishTime>08/23/2022 23:29:00</publishTime>
+      <publishTime>09/30/2022 09:37:57</publishTime>
     </File>
   </ItemGroup>
 </Project>
