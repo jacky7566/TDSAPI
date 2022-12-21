@@ -82,7 +82,6 @@ namespace KaizenTDSMvcAPI.Utils
             catch (Exception)
             {
                 LogHelper.WriteLine(ldap + " search failed");
-                throw;
             }
             return result;
         }

@@ -22,6 +22,8 @@ using System.Web;
 using System.Web.Http;
 using SystemLibrary.Utility;
 using ICSharpCode.SharpZipLib.Zip;
+using Org.BouncyCastle.Bcpg.OpenPgp;
+using Amazon.S3.Internal;
 
 namespace KaizenTDSMvcAPI.Utils
 {
@@ -281,13 +283,14 @@ namespace KaizenTDSMvcAPI.Utils
             }
         }
 
-        public static void FileExistChecker(List<dynamic> list, Dictionary<string, string> s3FileList, bool isCheckAthena)
+        public static async void FileExistChecker(List<dynamic> list, Dictionary<string, string> s3FileList, bool isCheckAthena)
         {
             try
             {
                 if (list.Count() == 0) 
                     return;
                 var dicList = list.Select(x => x as IDictionary<string, object>).ToList();
+                //string fileType;
                 string archiveFileNameKey = isCheckAthena ? "archivefilename" : "ARCHIVEFILENAME"; //Because Athena is using lower case column
                 string fileNameKey = isCheckAthena ? "filename" : "FILENAME"; //Because Athena is using lower case column
                 //To avoid empty archive folder   
@@ -299,9 +302,17 @@ namespace KaizenTDSMvcAPI.Utils
                     var fileName = item[fileNameKey].ToString();//archiveFNItem.Where(r => r.Key == "FILENAME").FirstOrDefault();
                     if (archiveFolderFiles.Contains(archiveFN) == false)
                     {
-                        var s3File = s3FileList.Where(r => r.Key.Contains(fileName)).FirstOrDefault().Value;
-                        if (string.IsNullOrEmpty(s3File) == false)
-                            item[archiveFileNameKey] = s3File;
+                        var s3PesignedUrl = s3FileList.Where(r => r.Key.Contains(fileName)).FirstOrDefault().Value;
+                        if (string.IsNullOrEmpty(s3PesignedUrl) == false)
+                        {
+                            //fileType = fileName.Split('.').Last().ToUpper();
+                            //if (fileType == "JPG")
+                            //    item[archiveFileNameKey] = "data:image/jpeg;base64," + FileHelper.GetImageAsBase64(s3PesignedUrl);
+                            //else if (fileType == "PNG")
+                            //    item[archiveFileNameKey] = "data:image/png;base64," + FileHelper.GetImageAsBase64(s3PesignedUrl);
+                            //else item[archiveFileNameKey] = s3PesignedUrl;
+                            item[archiveFileNameKey] = s3PesignedUrl;
+                        }                            
                     }
                 }
             }
@@ -381,6 +392,40 @@ namespace KaizenTDSMvcAPI.Utils
 
             returnStream.Position = 0;
             return returnStream;
+        }
+
+        /// <summary>
+        /// Download URL to base 64
+        /// </summary>
+        /// <param name="url"></param>
+        /// <returns></returns>
+        public static async Task<string> GetImageAsBase64Async(string url) // return Task<string>
+        {
+            using (var client = new HttpClient())
+            {
+                
+                var bytes = await client.GetByteArrayAsync(url); // there are other methods if you want to get involved with stream processing etc
+                var base64String = Convert.ToBase64String(bytes);
+                return base64String;
+            }
+        }
+
+        public static string GetImageAsBase64(string url)
+        {
+            try
+            {
+                using (var wClient = new WebClient())
+                {
+                    var bytes = wClient.DownloadData(url);
+                    var base64String = Convert.ToBase64String(bytes);
+                    return base64String;
+                }
+
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }

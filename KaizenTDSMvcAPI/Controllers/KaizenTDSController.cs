@@ -458,7 +458,7 @@ namespace KaizenTDSMvcAPI.Controllers
                 string sql = string.Format(@"SELECT (SELECT ARCHIVELOCATION FROM TESTHEADER_V 
                                         WHERE TESTHEADERID = {1}) ARCHIVEFOLDER,
                                         FILENAME, ARCHIVEFILENAME
-                                        FROM {0} WHERE TESTHEADERID = {1} ORDER BY LASTMODIFIEDDATE DESC ", tableName, testheaderId);
+                                        FROM {0} WHERE TESTHEADERID = {1} ", tableName, testheaderId);
 
                 var fileNameItem = Utils.FileHelper.GetFileNameByTestHeaderId(sql, isCheckAthena);
                 if (fileNameItem == null)
@@ -468,6 +468,15 @@ namespace KaizenTDSMvcAPI.Controllers
                 }
 
                 Dictionary<string, string> list = new Dictionary<string, string>();
+                //FileInfo tempFi;
+                ////Get Temp Folder Name
+                //var downloadFolder = LookupHelper.GetConfigValueByName("UI_UploadPath");
+                ////LookupHelper.GetConfigValueByName("UI_UploadPath");
+                //var tempDownloadPath = Path.Combine(downloadFolder, "TempPDF", DateTime.Now.ToString("yyyyMMddHHmmss"));
+
+                var resultList = ConnectionHelper.QueryDataBySQL(
+                    string.Format("Select * From {0} where TestHeaderId = {1}", tableName, testheaderId), isCheckAthena);
+
                 if (string.IsNullOrEmpty(fileNameItem.ARCHIVEFOLDER) == false)
                 {
                     AWSS3Helper awsHelper = new AWSS3Helper();
@@ -480,19 +489,20 @@ namespace KaizenTDSMvcAPI.Controllers
                     var awsFilePath = awsFolderName + "/" + string.Join("/", s3Chars);
                     //var awsFilePath = awsFolderName + "/" + fileNameItem.STARTTIME.ToString("yyyyMM") 
                     //    + "/" + fileNameItem.STARTTIME.ToString("dd") + "/" + testheaderId;
-
+ 
+                    //if (Directory.Exists(tempDownloadPath) == false)
+                    //        Directory.CreateDirectory(tempDownloadPath);
+                    //awsHelper.DownloadDirectory_from_s3(bucketName, awsFilePath, tempDownloadPath);
+                    //foreach (var item in Directory.GetFiles(Path.Combine(tempDownloadPath, testheaderId)))
+                    //{
+                    //    tempFi = new FileInfo(item);
+                    //    list.Add(tempFi.Name, tempFi.FullName);
+                    //}
+                    //20221212 Temp for comment
                     list = awsHelper.GenerateAllURL_from_s3(bucketName, awsFilePath);
                 }
 
-                var resultList = ConnectionHelper.QueryDataBySQL(
-                    string.Format("Select * From {0} where TestHeaderId = {1}", tableName, testheaderId), isCheckAthena);
                 Utils.FileHelper.FileExistChecker(resultList, list, isCheckAthena);
-                //var imageDataList = ConnectionHelper.QueryDataBySQL(string.Format("Select * From ImageData_v where TestHeaderId = {0}", testheaderId));
-                //TDSFileHelper.FileExistChecker(imageDataList, list);
-                //var attachmentDataList = ConnectionHelper.QueryDataBySQL(string.Format("Select * From AttachmentData_v where TestHeaderId = {0}", testheaderId));
-                //TDSFileHelper.FileExistChecker(attachmentDataList, list);
-                //var tableDataList = ConnectionHelper.QueryDataBySQL(string.Format("Select * From TableData_v where TestHeaderId = {0}", testheaderId));
-                //TDSFileHelper.FileExistChecker(tableDataList, list);
 
                 var rtnObj = new { ResultList = resultList };
                 resp = ExtensionHelper.LogAndResponse(new ObjectContent<object>(rtnObj, new JsonMediaTypeFormatter()));

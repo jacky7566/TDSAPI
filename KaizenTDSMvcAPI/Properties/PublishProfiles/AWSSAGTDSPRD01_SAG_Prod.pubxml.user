@@ -7,7 +7,8 @@ by editing this MSBuild file. In order to learn more about this please visit htt
   <PropertyGroup>
     <TimeStampOfAssociatedLegacyPublishXmlFile />
     <_PublishTargetUrl>\\Awssagtdsprd01\api\Prod</_PublishTargetUrl>
-    <History>True|2022-08-02T07:38:08.7475325Z;True|2022-08-02T14:33:40.2609554+08:00;True|2022-08-02T10:19:44.6867966+08:00;</History>
+    <History>True|2022-12-21T03:00:50.4730689Z;True|2022-11-30T08:58:00.1803371+08:00;True|2022-11-09T08:48:19.3384956+08:00;True|2022-08-02T15:38:08.7475325+08:00;True|2022-08-02T14:33:40.2609554+08:00;True|2022-08-02T10:19:44.6867966+08:00;</History>
+    <LastFailureDetails />
   </PropertyGroup>
   <ItemGroup>
     <File Include="ApplicationInsights.config">
@@ -86,16 +87,16 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>04/06/2022 23:12:07</publishTime>
     </File>
     <File Include="bin/AWSSDK.Core.dll">
-      <publishTime>07/30/2022 09:43:58</publishTime>
+      <publishTime>12/09/2022 11:50:34</publishTime>
     </File>
     <File Include="bin/AWSSDK.Core.pdb">
-      <publishTime>07/30/2022 02:25:44</publishTime>
+      <publishTime>12/09/2022 03:30:38</publishTime>
     </File>
     <File Include="bin/AWSSDK.S3.dll">
-      <publishTime>07/30/2022 09:44:02</publishTime>
+      <publishTime>12/09/2022 11:50:48</publishTime>
     </File>
     <File Include="bin/AWSSDK.S3.pdb">
-      <publishTime>07/30/2022 02:26:20</publishTime>
+      <publishTime>12/09/2022 03:31:02</publishTime>
     </File>
     <File Include="bin/BouncyCastle.Crypto.dll">
       <publishTime>12/09/2020 02:05:32</publishTime>
@@ -146,13 +147,13 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>08/13/2020 17:18:19</publishTime>
     </File>
     <File Include="bin/KaizenTDSMvcAPI.dll">
-      <publishTime>08/02/2022 15:37:25</publishTime>
+      <publishTime>12/21/2022 11:00:03</publishTime>
     </File>
     <File Include="bin/KaizenTDSMvcAPI.pdb">
-      <publishTime>08/02/2022 15:37:25</publishTime>
+      <publishTime>12/21/2022 11:00:03</publishTime>
     </File>
     <File Include="bin/KaizenTDSMvcAPI.xml">
-      <publishTime>08/02/2022 15:37:25</publishTime>
+      <publishTime>12/21/2022 11:00:03</publishTime>
     </File>
     <File Include="bin/log4net.dll">
       <publishTime>12/17/2021 18:45:06</publishTime>
@@ -296,13 +297,13 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>11/28/2018 21:04:24</publishTime>
     </File>
     <File Include="bin/SystemLibrary.dll">
-      <publishTime>08/02/2022 15:37:04</publishTime>
+      <publishTime>09/30/2022 08:58:21</publishTime>
     </File>
     <File Include="bin/SystemLibrary.dll.config">
       <publishTime>04/06/2022 23:05:34</publishTime>
     </File>
     <File Include="bin/SystemLibrary.pdb">
-      <publishTime>08/02/2022 15:37:04</publishTime>
+      <publishTime>09/30/2022 08:58:21</publishTime>
     </File>
     <File Include="bin/TDS_Data_Upload.dll">
       <publishTime>01/26/2021 21:22:03</publishTime>
@@ -539,7 +540,7 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>01/10/2020 16:07:28</publishTime>
     </File>
     <File Include="Web.config">
-      <publishTime>08/02/2022 15:37:28</publishTime>
+      <publishTime>12/21/2022 11:00:08</publishTime>
     </File>
   </ItemGroup>
 </Project>
