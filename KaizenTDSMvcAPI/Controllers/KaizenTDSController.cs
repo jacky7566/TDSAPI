@@ -757,22 +757,22 @@ namespace KaizenTDSMvcAPI.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        [Route("GenerateTestReport/{testHeaderId}")]
-        public HttpResponseMessage GenerateTestReport(string testHeaderId)
+        [Route("GenerateTestReport/{testHeaderId}/{isAddImage}")]
+        public HttpResponseMessage GenerateTestReport(string testHeaderId, bool isAddImage = true)
         {
             ConnectionHelper conHelper = new ConnectionHelper(string.Empty);
             TestReportHelper pDFHelper = new TestReportHelper();
             var resp = new HttpResponseMessage(HttpStatusCode.OK);
             try
             {
-                var stream = pDFHelper.CreateTestReport(testHeaderId);
+                var stream = pDFHelper.CreateTestReport(testHeaderId, isAddImage);
                 if (stream.ToArray().Count() > 0)
                 {
                     resp.Content = new ByteArrayContent(stream.ToArray());
                     resp.Content.Headers.ContentDisposition =
                         new System.Net.Http.Headers.ContentDispositionHeaderValue("attachment")
                         {
-                            FileName = string.Format("TestReport_{0}_{1}.pdf", pDFHelper._TestHeader.PRODUCTFAMILYNAME, pDFHelper._TestHeader.SERIALNUMBER)
+                            FileName = string.Format("TestReport_{0}.pdf", testHeaderId)
                         };
                     //result.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                     resp.Content.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
