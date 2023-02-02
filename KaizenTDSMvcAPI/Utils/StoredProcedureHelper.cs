@@ -85,6 +85,7 @@ namespace KaizenTDSMvcAPI.Utils
             object output;
             int out_is_success = 0;
             string out_message = string.Empty;
+            string out_parameter = string.Empty; //20220823 for insert package special output parameter usage
             try
             {
                 using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
@@ -110,6 +111,11 @@ namespace KaizenTDSMvcAPI.Utils
                                 sqlConn.Execute(StoredProcedureName, dps, commandType: System.Data.CommandType.StoredProcedure);
                                 out_is_success = dps.Get<OracleDecimal>("OUT_IS_SUCCESS").ToInt32();
                                 out_message = dps.Get<OracleString>("OUT_MESSAGE").ToString();
+                                if (arguments.Where(r=> r.ARGUMENT_NAME == "OUT_PARAMETER").Any())
+                                {
+                                    out_parameter = dps.Get<OracleString>("OUT_PARAMETER").ToString();
+                                }
+
                                 if (out_is_success == 1)
                                 {
                                     if (string.IsNullOrEmpty(out_message))
@@ -126,16 +132,13 @@ namespace KaizenTDSMvcAPI.Utils
                         else
                         {
                             out_message = string.Format("Wrong stored procedure format on lookup table! Stored Procedure: {0}", StoredProcedureName);
-                        }
-
-
-                   
+                        }                   
                     }
                     else
                     {
                         out_message = "Please check your input!";                        
                     }
-                    output = new { out_is_success, out_message };
+                    output = new { out_is_success, out_message, out_parameter };
                     return output;
                 }
             }
@@ -148,7 +151,16 @@ namespace KaizenTDSMvcAPI.Utils
             }
         }
 
-        public static SPOutputClass GetSPResByReqstr(List<KeyValuePair<string, string>> kvpList, string spName, List<SpArgumentsClass> argsList)
+        /// <summary>
+        /// Call Stored Procedure By Request
+        /// </summary>
+        /// <param name="kvpList"></param>
+        /// <param name="spName"></param>
+        /// <param name="argsList"></param>
+        /// <returns></returns>
+        public static SPOutputClass GetSPResByReqstr(List<KeyValuePair<string, string>> kvpList,
+            string spName,
+            List<SpArgumentsClass> argsList)
         {
             //string out_message = string.Empty;
             SPOutputClass rsp = new SPOutputClass();
@@ -228,6 +240,8 @@ namespace KaizenTDSMvcAPI.Utils
                     return OracleDbType.Decimal;
                 case "INT":
                     return OracleDbType.Int32;
+                case "BLOB":
+                    return OracleDbType.Blob;
             }
             return OracleDbType.Varchar2;
         }
@@ -257,6 +271,43 @@ namespace KaizenTDSMvcAPI.Utils
             else res = value;
 
             return res;
+        }
+
+        public static string ReplaceSPQueryBySQLForAthena(string tableName, string in_criteria)
+        {
+            var sql = string.Format("SELECT * FROM {0}_V WHERE 1 = 1 ", tableName.ToUpper());
+
+            if (tableName.Trim().ToUpper() == "TESTHEADER")
+            {
+                if (string.IsNullOrEmpty(in_criteria) == false)
+                {
+                    var hasProductFamilyName = in_criteria.ToUpper().IndexOf("PRODUCTFAMILYNAME", 1) > 0;
+                    var hasProductFamilyId = in_criteria.ToUpper().IndexOf("PRODUCTFAMILYID", 1) > 0;
+                    //Replace "and" to special char then count the array
+                    var noOtherCondition = in_criteria.ToUpper().Replace("AND ", "@").Split('@').Count() == 2;                    
+                    if ((hasProductFamilyName || hasProductFamilyId) && noOtherCondition)
+                    {
+                        sql = sql + in_criteria + " order by testheaderid desc LIMIT 50";
+                    }
+                    else
+                    {
+                        sql = sql + in_criteria + " order by testheaderid desc";
+                    }
+                }
+                else
+                {
+                    sql = sql + " order by testheaderid desc LIMIT 50";
+                }                
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(in_criteria) == false)
+                {
+                    sql = sql + in_criteria;
+                }
+            }
+
+            return sql;
         }
     }
 }

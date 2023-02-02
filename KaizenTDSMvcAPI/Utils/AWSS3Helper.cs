@@ -1,11 +1,14 @@
 ﻿using Amazon;
+using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
+using Amazon.S3.Transfer;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using SystemLibrary.Utility;
 
 namespace KaizenTDSMvcAPI.Utils
 {
@@ -67,6 +70,49 @@ namespace KaizenTDSMvcAPI.Utils
 
         }
 
+        public Stream Download_from_s3_New(string bucketname, string awsFileFullName, string Str_Dest_Path)
+        {
+            MemoryStream rs = new MemoryStream();
+            string Str_Res = string.Empty;
+            GetObjectRequest Req = new GetObjectRequest();
+            GetObjectResponse resp = new GetObjectResponse();
+            try
+            {
+                string accessKey = ConfigurationManager.AppSettings["AWSAccessKey"].ToString();
+                string secretKey = ConfigurationManager.AppSettings["AWSSecretKey"].ToString();
+                AmazonS3Config config = new AmazonS3Config();
+                config.RegionEndpoint = RegionEndpoint.USWest2;
+
+                AmazonS3Client S3_Client = new AmazonS3Client(accessKey, secretKey, config);
+                ListObjectsRequest request = new ListObjectsRequest();
+                request.BucketName = bucketname;
+                request.Prefix = awsFileFullName;
+
+                ListObjectsResponse response = S3_Client.ListObjects(request);
+                var file = response.S3Objects.FindAll(r => r.Key.Contains(awsFileFullName)).OrderByDescending(r => r.LastModified).FirstOrDefault();
+                if (response.S3Objects.Count() > 0 && file != null)
+                {
+                    Req.BucketName = file.BucketName;
+                    Req.Key = file.Key;
+                    resp = S3_Client.GetObject(Req);
+                    var getObjectResponse = S3_Client.GetObject(Req);
+   
+                    if (!Directory.Exists(Str_Dest_Path))
+                    {
+                        Directory.CreateDirectory(Str_Dest_Path);
+                    }
+                    //string fileName = file.Key.Split('/').Last();
+                    resp.WriteResponseStreamToFile(System.IO.Path.Combine(Str_Dest_Path, resp.Key));
+                }
+                else return null;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return rs;
+        }
+
         public Stream Download_from_s3(string bucketname, string awsFileFullName)
         {
             MemoryStream rs = new MemoryStream();
@@ -108,6 +154,85 @@ namespace KaizenTDSMvcAPI.Utils
             return rs;
         }
 
+        public void DownloadDirectory_from_s3(string bucketname, string prefix, string downloadPath)
+        {
+            string accessKey = ConfigurationManager.AppSettings["AWSAccessKey"].ToString();
+            string secretKey = ConfigurationManager.AppSettings["AWSSecretKey"].ToString();
+
+            var bucketRegion = RegionEndpoint.USWest2;
+            var credentials = new BasicAWSCredentials(accessKey, secretKey);
+            var client = new AmazonS3Client(credentials, bucketRegion);
+
+            var request = new ListObjectsRequest
+            {
+                BucketName = bucketname,
+                Prefix = prefix
+            };
+
+            try
+            {
+                var utility = new TransferUtility(client);
+                ListObjectsResponse response = null;
+                do
+                {
+                    response = client.ListObjects(request);
+                    var s3Objects = response.S3Objects;
+                    //foreach (var obj in s3Objects)
+                    //{
+                    //    utility.Download($"{downloadPath}\\{obj.Key}", bucketname, obj.Key);
+                    //}
+
+                    s3Objects.AsParallel().WithDegreeOfParallelism(20).ForAll(obj =>
+                    {
+                        if (downloadPath.Contains(obj.Key) == false)
+                        {
+                            var s3ObjArry = obj.Key.Split('/');
+                            var folderName = s3ObjArry[s3ObjArry.Count() - 2];
+                            utility.Download($"{downloadPath}\\{folderName}\\{s3ObjArry.LastOrDefault()}", bucketname, obj.Key);
+                        }                            
+                    });
+                    if (response.IsTruncated)
+                    {
+                        request.Marker = response.NextMarker;
+                    }
+                    else { request = null; }
+                }
+                while (request != null);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
+
+        public void DownloadDirectory_from_s3_V2(string bucketname, string prefix, string downloadPath)
+        {
+            string accessKey = ConfigurationManager.AppSettings["AWSAccessKey"].ToString();
+            string secretKey = ConfigurationManager.AppSettings["AWSSecretKey"].ToString();
+
+            var bucketRegion = RegionEndpoint.USWest2;
+            var credentials = new BasicAWSCredentials(accessKey, secretKey);
+            var client = new AmazonS3Client(credentials, bucketRegion);
+
+            var request = new ListObjectsRequest
+            {
+                BucketName = bucketname,
+                Prefix = prefix
+            };
+
+            try
+            {
+                var utility = new TransferUtility(client);
+                utility.DownloadDirectory(bucketname, prefix, downloadPath);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
+
         public string GenerateFileURL_from_s3(string bucketname, string fileName)
         {
             string Str_Res = string.Empty;
@@ -130,7 +255,12 @@ namespace KaizenTDSMvcAPI.Utils
 
                 if (file != null)
                 {
-                    GetPreSignedUrlRequest urlRequest = new GetPreSignedUrlRequest() { BucketName = file.BucketName, Key = file.Key, Protocol = Protocol.HTTP, Expires = DateTime.Now.AddHours(3) };
+                    GetPreSignedUrlRequest urlRequest = new GetPreSignedUrlRequest() { 
+                        BucketName = file.BucketName, 
+                        Key = file.Key, 
+                        Protocol = Protocol.HTTP, 
+                        Expires = DateTime.Now.AddHours(3) 
+                    };
                     url = S3_Client.GetPreSignedURL(urlRequest);
 
                 }
@@ -165,7 +295,59 @@ namespace KaizenTDSMvcAPI.Utils
                     var files = response.S3Objects;
                     foreach (var item in files)
                     {
-                        GetPreSignedUrlRequest urlRequest = new GetPreSignedUrlRequest() { BucketName = item.BucketName, Key = item.Key, Protocol = Protocol.HTTP, Expires = DateTime.Now.AddHours(3) };
+                        GetPreSignedUrlRequest urlRequest = new GetPreSignedUrlRequest() { 
+                            BucketName = item.BucketName, 
+                            Key = item.Key, 
+                            Protocol = Protocol.HTTP,
+                            Expires = DateTime.Now.AddHours(3) };
+                        urlDic.Add(item.Key, S3_Client.GetPreSignedURL(urlRequest));
+                    }
+                    if (response.IsTruncated)
+                    {
+                        request.Marker = response.NextMarker;
+                    }
+                    else { request = null; }
+                }
+                while (request != null);
+
+                return urlDic;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public Dictionary<string, string> GenerateAllURL_from_s3_ByFileList(string bucketname, string prefix, List<dynamic> dynamicList)
+        {
+            string Str_Res = string.Empty;
+            Dictionary<string, string> urlDic = new Dictionary<string, string>();
+            try
+            {
+                string accessKey = ConfigurationManager.AppSettings["AWSAccessKey"].ToString();
+                string secretKey = ConfigurationManager.AppSettings["AWSSecretKey"].ToString();
+                AmazonS3Config config = new AmazonS3Config();
+                config.RegionEndpoint = RegionEndpoint.USWest2;
+
+                AmazonS3Client S3_Client = new AmazonS3Client(accessKey, secretKey, config);
+                ListObjectsRequest request = new ListObjectsRequest();
+                request.BucketName = bucketname;
+                request.Prefix = prefix;
+                ListObjectsResponse response = null;
+                var fileList = dynamicList.Select(x => x as IDictionary<string, object>).ToList()
+                    .Select(r=> r["FILENAME"].ToString()).ToList();
+                do
+                {
+                    response = S3_Client.ListObjects(request);
+                    var files = response.S3Objects;
+                    foreach (var item in files)
+                    {
+                        GetPreSignedUrlRequest urlRequest = new GetPreSignedUrlRequest()
+                        {
+                            BucketName = item.BucketName,
+                            Key = item.Key,
+                            Protocol = Protocol.HTTP,
+                            Expires = DateTime.Now.AddHours(3)
+                        };
                         urlDic.Add(item.Key, S3_Client.GetPreSignedURL(urlRequest));
                     }
                     if (response.IsTruncated)

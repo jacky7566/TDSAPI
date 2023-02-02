@@ -3,8 +3,10 @@ using KaizenTDSMvcAPI.Models.KaizenTDSClasses;
 using Oracle.ManagedDataAccess.Client;
 using System;
 using System.Collections.Generic;
+using System.Data.Odbc;
 using System.Linq;
 using System.Web;
+using SystemLibrary.Utility;
 
 namespace KaizenTDSMvcAPI.Utils
 {
@@ -19,6 +21,22 @@ namespace KaizenTDSMvcAPI.Utils
                 using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DEFAULTCONNECTIONSTRING))
                 {
                     var list = sqlConn.Query<DeviceRelationClass>(sql).ToList();
+
+                    if (list.Count() == 0) //20210601 Jacky Add to check missing data from Athena
+                    {
+                        var athenaSchema = LookupHelper.GetConfigValueByName("KaizenTDSAthenaSchema").ToUpper();
+                        if (string.IsNullOrEmpty(athenaSchema) == false)
+                        {
+                            LogHelper.WriteLine("Get Data From Athena schema: " + athenaSchema);
+                            sql = ConnectionHelper.AthenaSQLSchemaModification(sql, athenaSchema);
+                            var athenaConn = LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn");
+                            using (var odbcConn = new OdbcConnection(athenaConn))
+                            {
+                                list = odbcConn.Query<DeviceRelationClass>(sql).ToList();
+                            }
+                        }
+                    }
+
                     return list;
                 }
             }
@@ -37,6 +55,21 @@ namespace KaizenTDSMvcAPI.Utils
                 using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DEFAULTCONNECTIONSTRING))
                 {
                     var list = sqlConn.Query<DeviceRelationClass>(sql).ToList();
+
+                    if (list.Count() == 0) //20210601 Jacky Add to check missing data from Athena
+                    {
+                        var athenaSchema = LookupHelper.GetConfigValueByName("KaizenTDSAthenaSchema").ToUpper();
+                        if (string.IsNullOrEmpty(athenaSchema) == false)
+                        {
+                            LogHelper.WriteLine("Get Data From Athena schema: " + athenaSchema);
+                            sql = ConnectionHelper.AthenaSQLSchemaModification(sql, athenaSchema);
+                            var athenaConn = LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn");
+                            using (var odbcConn = new OdbcConnection(athenaConn))
+                            {
+                                list = odbcConn.Query<DeviceRelationClass>(sql).ToList();
+                            }
+                        }
+                    }
                     return list;
                 }
             }

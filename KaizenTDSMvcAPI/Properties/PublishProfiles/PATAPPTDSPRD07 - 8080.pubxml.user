@@ -7,6 +7,7 @@ by editing this MSBuild file. In order to learn more about this please visit htt
   <PropertyGroup>
     <TimeStampOfAssociatedLegacyPublishXmlFile />
     <_PublishTargetUrl>\\patapptdsprd07\KaizenTDS_Data\API\Production</_PublishTargetUrl>
+    <History>True|2022-03-31T06:37:00.2395187Z;</History>
   </PropertyGroup>
   <ItemGroup>
     <File Include="ApplicationInsights.config">
@@ -120,11 +121,17 @@ by editing this MSBuild file. In order to learn more about this please visit htt
     <File Include="bin/ExcelNumberFormat.dll">
       <publishTime>03/13/2020 09:36:50</publishTime>
     </File>
+    <File Include="bin/ICSharpCode.SharpZipLib.dll">
+      <publishTime>09/19/2021 09:20:28</publishTime>
+    </File>
+    <File Include="bin/ICSharpCode.SharpZipLib.pdb">
+      <publishTime>09/19/2021 09:20:28</publishTime>
+    </File>
     <File Include="bin/Iesi.Collections.dll">
       <publishTime>10/27/2012 18:50:12</publishTime>
     </File>
     <File Include="bin/IngestionDLL.dll">
-      <publishTime>01/12/2021 20:30:16</publishTime>
+      <publishTime>01/26/2021 21:22:25</publishTime>
     </File>
     <File Include="bin/itextsharp.dll">
       <publishTime>06/20/2019 17:39:40</publishTime>
@@ -136,13 +143,13 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>08/13/2020 17:18:19</publishTime>
     </File>
     <File Include="bin/KaizenTDSMvcAPI.dll">
-      <publishTime>01/15/2021 13:47:36</publishTime>
+      <publishTime>03/31/2022 14:35:12</publishTime>
     </File>
     <File Include="bin/KaizenTDSMvcAPI.pdb">
-      <publishTime>01/15/2021 13:47:36</publishTime>
+      <publishTime>03/31/2022 14:35:12</publishTime>
     </File>
     <File Include="bin/KaizenTDSMvcAPI.xml">
-      <publishTime>01/15/2021 13:47:36</publishTime>
+      <publishTime>03/31/2022 14:35:11</publishTime>
     </File>
     <File Include="bin/log4net.dll">
       <publishTime>03/08/2017 19:26:22</publishTime>
@@ -178,7 +185,7 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>02/02/2017 12:35:28</publishTime>
     </File>
     <File Include="bin/Oracle.ManagedDataAccess.dll">
-      <publishTime>01/10/2020 16:08:15</publishTime>
+      <publishTime>03/05/2021 02:07:52</publishTime>
     </File>
     <File Include="bin/Swashbuckle.Core.dll">
       <publishTime>01/10/2020 16:08:29</publishTime>
@@ -226,16 +233,16 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>01/10/2020 16:07:59</publishTime>
     </File>
     <File Include="bin/SystemLibrary.dll">
-      <publishTime>01/15/2021 13:46:45</publishTime>
+      <publishTime>03/31/2022 13:54:00</publishTime>
     </File>
     <File Include="bin/SystemLibrary.dll.config">
-      <publishTime>09/23/2019 11:49:41</publishTime>
+      <publishTime>02/23/2022 14:20:10</publishTime>
     </File>
     <File Include="bin/SystemLibrary.pdb">
-      <publishTime>01/15/2021 13:46:45</publishTime>
+      <publishTime>03/31/2022 13:54:00</publishTime>
     </File>
     <File Include="bin/TDS_Data_Upload.dll">
-      <publishTime>01/12/2021 20:29:26</publishTime>
+      <publishTime>01/26/2021 21:22:03</publishTime>
     </File>
     <File Include="bin/WebActivator.dll">
       <publishTime>01/10/2020 16:07:59</publishTime>
@@ -322,7 +329,7 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>01/10/2020 16:07:28</publishTime>
     </File>
     <File Include="Web.config">
-      <publishTime>01/15/2021 13:47:39</publishTime>
+      <publishTime>03/31/2022 14:35:17</publishTime>
     </File>
   </ItemGroup>
 </Project>

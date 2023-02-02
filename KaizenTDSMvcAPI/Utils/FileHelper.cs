@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
+using System.Data.Odbc;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -20,10 +21,13 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using SystemLibrary.Utility;
+using ICSharpCode.SharpZipLib.Zip;
+using Org.BouncyCastle.Bcpg.OpenPgp;
+using Amazon.S3.Internal;
 
 namespace KaizenTDSMvcAPI.Utils
 {
-    public class TDSFileHelper
+    public class FileHelper
     {
         public static string FileUploadPath = ConfigurationManager.AppSettings["FileUploadPath"];
         public static string UploadFileName;
@@ -39,14 +43,14 @@ namespace KaizenTDSMvcAPI.Utils
                     return false;
                 }
 
+                var uiUpdPath = LookupHelper.GetConfigValueByName("UI_UploadPath");
+                if (string.IsNullOrEmpty(uiUpdPath) == false)
+                {
+                    root = uiUpdPath;
+                }
+
                 if (string.IsNullOrEmpty(folderName) == false)
                 {
-
-                    var uiUpdPath = LookupHelper.GetConfigValueByName("UI_UploadPath");
-                    if (string.IsNullOrEmpty(uiUpdPath))
-                    {
-                        throw new Exception("");
-                    }
                     root = Path.Combine(uiUpdPath, folderName);
                 }
 
@@ -202,35 +206,37 @@ namespace KaizenTDSMvcAPI.Utils
             }
         }
 
-        public static FileNameClass GetFileNameByTestHeaderId(string testheaderId, string tableName, string filename)
+        public static FileNameClass GetFileNameByTestHeaderId(string sql, bool isCheckAthena)
         {
             string fullFilePath = string.Empty;
-            string sql = string.Empty;
-            if (string.IsNullOrEmpty(tableName)) //Default XML File Path
-                sql = string.Format(@"SELECT ARCHIVELOCATION ARCHIVEFOLDER, FILENAME, ARCHIVEFILENAME
-                                        FROM TESTHEADER_V WHERE TESTHEADERID = {0} ", testheaderId);
-            else
-            {
-                sql = string.Format(@"SELECT NVL((SELECT ARCHIVELOCATION FROM TESTHEADER_V 
-                                        WHERE TESTHEADERID = {1}), '') ARCHIVEFOLDER,
-                                        FILENAME, ARCHIVEFILENAME
-                                        FROM {0} WHERE TESTHEADERID = {1} AND FILENAME = '{2}' ORDER BY LASTMODIFIEDDATE DESC ", tableName, testheaderId, filename.Trim());
-            }
-            
+
             try
             {
+                List<FileNameClass> list = new List<FileNameClass>();
                 using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
                 {
-                    var list = sqlConn.Query<FileNameClass>(sql).ToList();
-                    var fileNameObj = list.FirstOrDefault();
-                    //if (fileNameObj != null && string.IsNullOrEmpty(fileNameObj.ARCHIVEFOLDER.Trim()))
-                    //{
-                    //    var directories = fileNameObj.ARCHIVEFILENAME.Split(Path.DirectorySeparatorChar);
-                    //    fileNameObj.ARCHIVEFOLDER = fileNameObj.ARCHIVEFILENAME.Replace(directories[directories.Count() - 1], "")
-                    //        .TrimEnd(Path.DirectorySeparatorChar);
-                    //}
-                    return fileNameObj;
+                    if (isCheckAthena)
+                    {
+                        //20210601 Jacky Add Athena Query function
+                        var athenaSchema = LookupHelper.GetConfigValueByName("KaizenTDSAthenaSchema").ToUpper();
+                        if (string.IsNullOrEmpty(athenaSchema) == false)
+                        {
+                            sql = ConnectionHelper.AthenaSQLSchemaModification(sql, athenaSchema);
+                            var athenaConnStr = LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn");
+                            using (var atConn = new OdbcConnection(athenaConnStr))
+                            {
+                                list = atConn.Query<FileNameClass>(sql).ToList();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        list = sqlConn.Query<FileNameClass>(sql).ToList();
+                    }
                 }
+
+                var fileNameObj = list.FirstOrDefault();
+                return fileNameObj;
             }
             catch (Exception ex)
             {
@@ -239,25 +245,74 @@ namespace KaizenTDSMvcAPI.Utils
             }
         }
 
-        public static void FileExistChecker(List<dynamic> list, Dictionary<string, string> s3FileList)
+        public static List<TestFileDownloadClass> GetTestFilesByTestHeaderIds(string sql, bool isCheckAthena)
+        {
+            string fullFilePath = string.Empty;
+
+            try
+            {
+                List<TestFileDownloadClass> list = new List<TestFileDownloadClass>();
+                using (var sqlConn = new OracleConnection(ConnectionHelper.ConnectionInfo.DATABASECONNECTIONSTRING))
+                {
+                    if (isCheckAthena)
+                    {
+                        //20210601 Jacky Add Athena Query function
+                        var athenaSchema = LookupHelper.GetConfigValueByName("KaizenTDSAthenaSchema").ToUpper();
+                        if (string.IsNullOrEmpty(athenaSchema) == false)
+                        {
+                            sql = ConnectionHelper.AthenaSQLSchemaModification(sql, athenaSchema);
+                            var athenaConnStr = LookupHelper.GetConfigValueByName("KaizenTDSAthenaConn");
+                            using (var atConn = new OdbcConnection(athenaConnStr))
+                            {
+                                list = atConn.Query<TestFileDownloadClass>(sql).ToList();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        list = sqlConn.Query<TestFileDownloadClass>(sql).ToList();
+                    }
+                }
+
+                return list;
+            }
+            catch (Exception ex)
+            {
+                LogHelper.WriteLine(ex.ToString());
+                throw ex;
+            }
+        }
+
+        public static async void FileExistChecker(List<dynamic> list, Dictionary<string, string> s3FileList, bool isCheckAthena)
         {
             try
             {
                 if (list.Count() == 0) 
                     return;
                 var dicList = list.Select(x => x as IDictionary<string, object>).ToList();
-                //To avoid empty archive folder
-                var archiveLoc = dicList.FirstOrDefault()["ARCHIVEFILENAME"].ToString().Replace(dicList.FirstOrDefault()["FILENAME"].ToString(), "");
+                //string fileType;
+                string archiveFileNameKey = isCheckAthena ? "archivefilename" : "ARCHIVEFILENAME"; //Because Athena is using lower case column
+                string fileNameKey = isCheckAthena ? "filename" : "FILENAME"; //Because Athena is using lower case column
+                //To avoid empty archive folder   
+                var archiveLoc = dicList.FirstOrDefault()[archiveFileNameKey].ToString().Replace(dicList.FirstOrDefault()[fileNameKey].ToString(), "");
                 var archiveFolderFiles = Directory.Exists(archiveLoc) ? Directory.GetFiles(archiveLoc).ToList() : new List<string>();
                 foreach (var item in dicList)
                 {
-                    var archiveFN = item["ARCHIVEFILENAME"].ToString();//archiveFNItem.Where(r => r.Key == "ARCHIVEFILENAME").FirstOrDefault();
-                    var fileName = item["FILENAME"].ToString();//archiveFNItem.Where(r => r.Key == "FILENAME").FirstOrDefault();
+                    var archiveFN = item[archiveFileNameKey].ToString();//archiveFNItem.Where(r => r.Key == "ARCHIVEFILENAME").FirstOrDefault();
+                    var fileName = item[fileNameKey].ToString();//archiveFNItem.Where(r => r.Key == "FILENAME").FirstOrDefault();
                     if (archiveFolderFiles.Contains(archiveFN) == false)
                     {
-                        var s3File = s3FileList.Where(r => r.Key.Contains(fileName)).FirstOrDefault().Value;
-                        if (string.IsNullOrEmpty(s3File) == false)
-                            item["ARCHIVEFILENAME"] = s3File;
+                        var s3PesignedUrl = s3FileList.Where(r => r.Key.Contains(fileName)).FirstOrDefault().Value;
+                        if (string.IsNullOrEmpty(s3PesignedUrl) == false)
+                        {
+                            //fileType = fileName.Split('.').Last().ToUpper();
+                            //if (fileType == "JPG")
+                            //    item[archiveFileNameKey] = "data:image/jpeg;base64," + FileHelper.GetImageAsBase64(s3PesignedUrl);
+                            //else if (fileType == "PNG")
+                            //    item[archiveFileNameKey] = "data:image/png;base64," + FileHelper.GetImageAsBase64(s3PesignedUrl);
+                            //else item[archiveFileNameKey] = s3PesignedUrl;
+                            item[archiveFileNameKey] = s3PesignedUrl;
+                        }                            
                     }
                 }
             }
@@ -278,6 +333,98 @@ namespace KaizenTDSMvcAPI.Utils
                     ms.Write(buffer, 0, read);
                 }
                 return ms.ToArray();
+            }
+        }
+
+        public class MultipartContent
+        {
+            public FileData[] files;
+        }
+        public class FileData
+        {
+            public byte[] Content;
+            public string Name;
+        }
+
+        /// <summary>
+        /// compress mutiple files and return a compressed stream
+        /// </summary>
+        /// <param name="streams">
+        /// key is file name
+        /// value is compressed stream
+        /// </param>
+        /// <returns>return a stream compressed</returns>
+        public static Stream PackageManyZip(Dictionary<string, Stream> streams)
+        {
+            byte[] buffer = new byte[6500];
+            MemoryStream returnStream = new MemoryStream();
+            var zipMs = new MemoryStream();
+
+            using (ZipOutputStream zipStream = new ZipOutputStream(zipMs))
+            {
+                zipStream.SetLevel(9);
+                foreach (var kv in streams)
+                {
+                    string fileName = kv.Key;
+                    using (var streamInput = kv.Value)
+                    {
+                        zipStream.PutNextEntry(new ZipEntry(fileName));
+                        while (true)
+                        {
+                            var readCount = streamInput.Read(buffer, 0, buffer.Length);
+                            if (readCount > 0)
+                            {
+                                zipStream.Write(buffer, 0, readCount);
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                        zipStream.Flush();
+                    }
+                }
+
+                zipStream.Finish();
+                zipMs.Position = 0;
+                zipMs.CopyTo(returnStream, 5600);
+            }
+
+            returnStream.Position = 0;
+            return returnStream;
+        }
+
+        /// <summary>
+        /// Download URL to base 64
+        /// </summary>
+        /// <param name="url"></param>
+        /// <returns></returns>
+        public static async Task<string> GetImageAsBase64Async(string url) // return Task<string>
+        {
+            using (var client = new HttpClient())
+            {
+                
+                var bytes = await client.GetByteArrayAsync(url); // there are other methods if you want to get involved with stream processing etc
+                var base64String = Convert.ToBase64String(bytes);
+                return base64String;
+            }
+        }
+
+        public static string GetImageAsBase64(string url)
+        {
+            try
+            {
+                using (var wClient = new WebClient())
+                {
+                    var bytes = wClient.DownloadData(url);
+                    var base64String = Convert.ToBase64String(bytes);
+                    return base64String;
+                }
+
+            }
+            catch (Exception)
+            {
+                throw;
             }
         }
     }

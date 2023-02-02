@@ -17,8 +17,10 @@
     <WebStackScaffolding_IsReferencingScriptLibrariesSelected>True</WebStackScaffolding_IsReferencingScriptLibrariesSelected>
     <WebStackScaffolding_LayoutPageFile />
     <WebStackScaffolding_IsAsyncSelected>False</WebStackScaffolding_IsAsyncSelected>
-    <NameOfLastUsedPublishProfile>sznapptdsprd01 - Production</NameOfLastUsedPublishProfile>
-    <ProjectView>ShowAllFiles</ProjectView>
+    <NameOfLastUsedPublishProfile>C:\SourceControl\Bitbucket\Lumentum\KaizenTDS\KaizenTDSMvcAPI\KaizenTDSMvcAPI\Properties\PublishProfiles\KaizenDev 8080.pubxml</NameOfLastUsedPublishProfile>
+    <ProjectView>ProjectFiles</ProjectView>
+    <ActiveDebugTarget>
+    </ActiveDebugTarget>
   </PropertyGroup>
   <ProjectExtensions>
     <VisualStudio>
@@ -40,7 +42,7 @@
           <StartWorkingDirectory>
           </StartWorkingDirectory>
           <EnableENC>True</EnableENC>
-          <AlwaysStartWebServerOnDebug>True</AlwaysStartWebServerOnDebug>
+          <AlwaysStartWebServerOnDebug>False</AlwaysStartWebServerOnDebug>
         </WebProjectProperties>
       </FlavorProperties>
     </VisualStudio>
